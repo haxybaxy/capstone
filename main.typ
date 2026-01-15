@@ -43,5 +43,5 @@
 
 #pagebreak()
 // Typst will only show documents that have been referenced here!
-#bibliography("references.bib")
+#bibliography("references.bib", title: "References")
 
