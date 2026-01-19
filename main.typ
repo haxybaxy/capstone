@@ -6,6 +6,14 @@
 
 #set text(font: "Times New Roman", size: 12pt)
 
+#set heading(numbering: "1.a)")
+#show heading: it => {
+  block(
+    it,
+    below: 1em,
+  )
+}
+
 #set par(leading: 1.0em)
 
 #set page(
@@ -13,14 +21,15 @@
     #grid(
       columns: (1fr, auto),
       align: (left, right),
-      // optional: tweak spacing/padding in header area
       gutter: 0pt,
       [Fancy Head],
-      [#counter(page).display("0")],
+      [#counter(page).display("1")],
     )
   ],
   footer: [],
 )
+
+#set bibliography(style: "ieee") // numeric-ish
 
 #include "sections/title_page.typ"
 #include "sections/abstract.typ"
@@ -33,6 +42,7 @@
 #include "sections/conclusions.typ"
 #include "sections/appendix.typ"
 
-//#set bibliography(style: "ieee") // numeric-ish
-// #bibliography("references.bib")
+#pagebreak()
+// Typst will only show documents that have been referenced here!
+#bibliography("references.bib")
 
