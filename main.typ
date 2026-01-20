@@ -21,8 +21,7 @@
       columns: (1fr, auto),
       align: (left, right),
       gutter: 0pt,
-      [Fancy Head],
-      [#counter(page).display("1")],
+      [Fancy Head], [#counter(page).display("1")],
     )
   ],
   footer: [],
