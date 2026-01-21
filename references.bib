@@ -1,15 +1,151 @@
-@inproceedings{mypaper,
-  title        = {An Analysis of Example},
-  author       = {John Smith and Jane Doe},
-  year         = 2022,
-  month        = {June},
-  booktitle    = {Proceedings of the International Conference on Example},
-  publisher    = {ACM Press},
-  address      = {New York, NY},
-  series       = {Example Conference Proceedings},
-  volume       = 1,
-  number       = 2,
-  pages        = {123--130},
-  editor       = {David Brown and Susan Green},
-  organization = {ACM}
+@article{fluke2011,
+   title={Astrophysical Supercomputing with GPUs: Critical Decisions for Early Adopters},
+   volume={28},
+   ISSN={1448-6083},
+   url={http://dx.doi.org/10.1071/AS10019},
+   DOI={10.1071/as10019},
+   number={1},
+   journal={Publications of the Astronomical Society of Australia},
+   publisher={Cambridge University Press (CUP)},
+   author={Fluke, Christopher J. and Barnes, David G. and Barsdell, Benjamin R. and Hassan, Amr H.},
+   year={2011},
+   pages={15–27} }
+
+@article{bedorf2010,
+author = {Gaburov, Evghenii and Bédorf, Jeroen and Portegies Zwart, Simon},
+year = {2010},
+month = {05},
+pages = {1119-1127},
+title = {Gravitational tree-code on graphics processing units: Implementation in CUDA},
+volume = {324},
+journal = {Procedia Computer Science},
+doi = {10.1016/j.procs.2010.04.124}
 }
+
+@article{fastnbody,
+author = {Nyland, Lars and Harris, M. and Prins, Jan},
+year = {2009},
+month = {01},
+pages = {677-695},
+title = {Fast N-body simulation with CUDA},
+journal = {GPU Gem, Vol. 3}
+}
+  
+@article{skeletons_1994,
+	title = {Skeletons from the Treecode Closet},
+	volume = {111},
+	issn = {0021-9991},
+	url = {https://www.sciencedirect.com/science/article/pii/S0021999184710503},
+	doi = {https://doi.org/10.1006/jcph.1994.1050},
+	abstract = {We consider treecodes (N-body programs which use a tree data structure) from the standpoint of their worst-case behavior. That is, we derive upper bounds on the largest possible errors that are introduced into a calculation by use of various multipole acceptability criteria ({MAC}). We find that the conventional Barnes-Hut {MAC} can introduce potentially unbounded errors unless θ {\textless} 1/3, and that this behavior while rare, is demonstrable in astrophysically reasonable examples. We consider two other {MACs} closely related to the {BH} {MAC}. While they do not admit the same unbounded errors, they nevertheless require extraordinary amounts of {CPU} time to guarantee modest levels of accuracy. We derive new error bounds based on some additional, easily computed moments of the mass distribution. These error bounds form the basis for four new {MACs} which can be used to limit the absolute or relative error introduced by each multipole evaluation, or, with the introduction of some additional data structures, the absolute or rms error in the final acceleration of each particle. Using the Sum Squares {MAC} to analytically place a 1\% bound on the rms error in a series of test models, we find that it significantly outperforms the θ = 0.65 {BH} {MAC} in terms of both accuracy (mean, rms, and maximum error) and performance (floating point operation count).},
+	pages = {136--155},
+	number = {1},
+	journaltitle = {Journal of Computational Physics},
+	author = {Salmon, John K. and Warren, Michael S.},
+	date = {1994},
+}
+
+
+  
+@article{springel_2005,
+	title = {The cosmological simulation code gadget-2},
+	volume = {364},
+	issn = {0035-8711},
+	url = {https://doi.org/10.1111/j.1365-2966.2005.09655.x},
+	doi = {10.1111/j.1365-2966.2005.09655.x},
+	abstract = {We discuss the cosmological simulation code gadget-2, a new massively parallel {TreeSPH} code, capable of following a collisionless fluid with the N-body method, and an ideal gas by means of smoothed particle hydrodynamics ({SPH}). Our implementation of {SPH} manifestly conserves energy and entropy in regions free of dissipation, while allowing for fully adaptive smoothing lengths. Gravitational forces are computed with a hierarchical multipole expansion, which can optionally be applied in the form of a {TreePM} algorithm, where only short-range forces are computed with the ‘tree’ method while long-range forces are determined with Fourier techniques. Time integration is based on a quasi-symplectic scheme where long-range and short-range forces can be integrated with different time-steps. Individual and adaptive short-range time-steps may also be employed. The domain decomposition used in the parallelization algorithm is based on a space-filling curve, resulting in high flexibility and tree force errors that do not depend on the way the domains are cut. The code is efficient in terms of memory consumption and required communication bandwidth. It has been used to compute the first cosmological N-body simulation with more than 1010 dark matter particles, reaching a homogeneous spatial dynamic range of 105 per dimension in a three-dimensional box. It has also been used to carry out very large cosmological {SPH} simulations that account for radiative cooling and star formation, reaching total particle numbers of more than 250 million. We present the algorithms used by the code and discuss their accuracy and performance using a number of test problems. gadget-2 is publicly released to the research community.},
+	pages = {1105--1134},
+	number = {4},
+	journaltitle = {Monthly Notices of the Royal Astronomical Society},
+	author = {Springel, Volker},
+	date = {2005-12},
+	note = {\_eprint: https://academic.oup.com/mnras/article-pdf/364/4/1105/18657201/364-4-1105.pdf},
+}
+
+  
+
+@article{barneshut,
+	title = {A hierarchical O(N log N) force-calculation algorithm},
+	volume = {324},
+	issn = {1476-4687},
+	url = {https://doi.org/10.1038/324446a0},
+	doi = {10.1038/324446a0},
+	abstract = {Until recently the gravitational N-body problem has been modelled numerically either by direct integration, in which the computation needed increases as N2, or by an iterative potential method in which the number of operations grows as N log N. Here we describe a novel method of directly calculating the force on N bodies that grows only as N log N. The technique uses a tree-structured hierarchical subdivision of space into cubic cells, each of which is recursively divided into eight subcells whenever more than one particle is found to occupy the same cell. This tree is constructed anew at every time step, avoiding ambiguity and tangling. Advantages over potential-solving codes are: accurate local interactions; freedom from geometrical assumptions and restrictions; and applicability to a wide class of systems, including (proto-)planetary, stellar, galactic and cosmological ones. Advantages over previous hierarchical tree-codes include simplicity and the possibility of rigorous analysis of error. Although we concentrate here on stellar dynamical applications, our techniques of efficiently handling a large number of long-range interactions and concentrating computational effort where most needed have potential applications in other areas of astrophysics as well.},
+	number = {6096},
+	journal = {Nature},
+	author = {Barnes, Josh and Hut, Piet},
+	month = dec,
+	year = {1986},
+	pages = {446--449},
+}
+
+@article{owens2007,
+author = {Owens, John and Houston, Mike and Luebke, David and Green, Simon and Stone, John and Phillips, James},
+year = {2008},
+month = {05},
+pages = {879-899},
+title = {GPU computing},
+volume = {96},
+journal = {Proceedings of the IEEE},
+doi = {10.1109/JPROC.2008.917757}
+}
+
+}
+@article{cudabarnes,
+author = {Burtscher, Martin and Pingali, Keshav},
+year = {2011},
+month = {12},
+pages = {},
+title = {An Efficient CUDA Implementation of the Tree-Based Barnes Hut n-Body Algorithm},
+isbn = {9780123849885},
+journal = {GPU Computing Gems Emerald Edition},
+doi = {10.1016/B978-0-12-384988-5.00006-1}
+}
+
+@article{freelunchover,
+  added-at = {2008-09-03T09:42:11.000+0200},
+  author = {Sutter, Herb},
+  biburl = {https://www.bibsonomy.org/bibtex/2215f355123504f02d0ddb1b40292abeb/gron},
+  interhash = {1540da30b9424bf778012a96f1192730},
+  intrahash = {215f355123504f02d0ddb1b40292abeb},
+  journal = {Dr. Dobb’s Journal},
+  keywords = {Concurrency PhD Proposal},
+  number = 3,
+  pages = {202--210},
+  timestamp = {2008-09-03T09:42:12.000+0200},
+  title = {The Free Lunch Is Over: A Fundamental Turn Toward Concurrency in Software},
+  url = {http://www.gotw.ca/publications/concurrency-ddj.htm},
+  volume = 30,
+  year = 2005
+}
+
+  @book{galacticdynamics2nded,
+ ISBN = {9780691130262},
+ URL = {http://www.jstor.org/stable/j.ctvc778ff},
+ abstract = {Since it was first published in 1987, Galactic Dynamics has become the most widely used advanced textbook on the structure and dynamics of galaxies and one of the most cited references in astrophysics. Now, in this extensively revised and updated edition, James Binney and Scott Tremaine describe the dramatic recent advances in this subject, makingGalactic Dynamics the most authoritative introduction to galactic astrophysics available to advanced undergraduate students, graduate students, and researchers.Every part of the book has been thoroughly overhauled, and many sections have been completely rewritten. Many new topics are covered, including N-body simulation methods, black holes in stellar systems, linear stability and response theory, and galaxy formation in the cosmological context. Binney and Tremaine, two of the world's leading astrophysicists, use the tools of theoretical physics to describe how galaxies and other stellar systems work, succinctly and lucidly explaining theoretical principles and their applications to observational phenomena. They provide readers with an understanding of stellar dynamics at the level needed to reach the frontiers of the subject.This new edition of the classic text is the definitive introduction to the field.?    A complete revision and update of one of the most cited references in astrophysics    Provides a comprehensive description of the dynamical structure and evolution of galaxies and other stellar systems    Serves as both a graduate textbook and a resource for researchers    Includes 20 color illustrations, 205 figures, and more than 200 problems    Covers the gravitational N-body problem, hierarchical galaxy formation, galaxy mergers, dark matter, spiral structure, numerical simulations, orbits and chaos, equilibrium and stability of stellar systems, evolution of binary stars and star clusters, and much more    Companion volume to Galactic Astronomy, the definitive book on the phenomenology of galaxies and star clusters    },
+ author = {James Binney and Scott Tremaine},
+ edition = {REV - Revised, 2},
+ publisher = {Princeton University Press},
+ title = {Galactic Dynamics: Second Edition},
+ urldate = {2026-01-25},
+ year = {2008}
+}
+
+
+
+
+  @article{surveyofcomputation,
+author = {Owens, John D. and Luebke, David and Govindaraju, Naga and Harris, Mark and Krüger, Jens and Lefohn, Aaron E. and Purcell, Timothy J.},
+title = {A Survey of General-Purpose Computation on Graphics Hardware},
+journal = {Computer Graphics Forum},
+volume = {26},
+number = {1},
+pages = {80-113},
+keywords = {GPGPU, general-purpose computing on graphics hardware, parallel computing, GPU, graphics hardware, SIMD, stream processing, stream computing, data-parallel computing, high-performance computing, HPC, I.3.1 Computer Graphics: Hardware architecture, I.3.6 Computer Graphics: Methodology and techniques, D.2.2 Software Engineering: Design tools and techniques},
+doi = {https://doi.org/10.1111/j.1467-8659.2007.01012.x},
+url = {https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1467-8659.2007.01012.x},
+eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1467-8659.2007.01012.x},
+abstract = {Abstract The rapid increase in the performance of graphics hardware, coupled with recent improvements in its programmability, have made graphics hardware a compelling platform for computationally demanding tasks in a wide variety of application domains. In this report, we describe, summarize, and analyze the latest research in mapping general-purpose computation to graphics hardware. We begin with the technical motivations that underlie general-purpose computation on graphics processors (GPGPU) and describe the hardware and software developments that have led to the recent interest in this field. We then aim the main body of this report at two separate audiences. First, we describe the techniques used in mapping general-purpose computation to graphics hardware. We believe these techniques will be generally useful for researchers who plan to develop the next generation of GPGPU algorithms and techniques. Second, we survey and categorize the latest developments in general-purpose application development on graphics hardware.},
+year = {2007}
+}
+
