@@ -11,6 +11,14 @@
    year={2011},
    pages={15–27} }
 
+ @misc{webgpu-spec,
+  author       = {{Khronos Group}},
+  title        = {{WebGPU Specification}},
+  year         = {2024},
+  howpublished = {\url{https://www.w3.org/TR/webgpu/}},
+  note         = {Accessed: 2026-01-25}
+}
+
 @article{bedorf2010,
 author = {Gaburov, Evghenii and Bédorf, Jeroen and Portegies Zwart, Simon},
 year = {2010},
@@ -79,6 +87,74 @@ journal = {GPU Gem, Vol. 3}
 	pages = {446--449},
 }
 
+
+  @inproceedings{realitycheck,
+author = {Sengupta, Sthitadhi and Wu, Nan and Varvello, Matteo and Jana, Krish and Chen, Songqing and Han, Bo},
+title = {From WebGL to WebGPU: A Reality Check of Browser-Based GPU Acceleration},
+year = {2025},
+isbn = {9798400718601},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3730567.3764504},
+doi = {10.1145/3730567.3764504},
+abstract = {With the rising demand for cost-effective and privacy-preserving deep learning and visualization services, service providers are increasingly turning to in-browser solutions. General-purpose computations, leveraging the graphics processing unit (GPU), are foundational to executing algorithms that power these services. Web graphics library (WebGL) is a widely adopted GPU-access application programming interface (API) designed for multidimensional rendering in browsers, while WebGPU is a newer API developed with compute-specific capabilities. Although WebGPU is a promising standard, its performance has not been systematically evaluated for general-purpose computation. This paper investigates WebGPU and WebGL for accelerating client-side computation in web browsers. By benchmarking key computational GPU kernels for 16 PolyBench and 2 CHStone functions, we measure the performance of WebGPU and WebGL across varying input sizes and algorithmic complexities. Our results show that: 1) both WebGPU and WebGL exhibit poorer performance than central processing unit (CPU)-based execution for small input data due to setup and CPU-GPU synchronization overheads, but they outperform CPU execution as the input data size increases; 2) WebGL performs better than WebGPU for small inputs, except for CPU-driven loop functions, due to its lower initial setup overhead; and 3) WebGPU outperforms WebGL for large inputs through optimized GPU thread utilization and achieves better performance for loop-driven algorithms across all input sizes by minimizing CPU-GPU data exchange. Overall, our results indicate that WebGPU is a competitive option for enhancing the execution performance of large-scale web applications.},
+booktitle = {Proceedings of the 2025 ACM Internet Measurement Conference},
+pages = {1018–1024},
+numpages = {7},
+keywords = {measurement, gpu acceleration, web performance, webgpu, webgl, webassembly},
+location = {USA},
+series = {IMC '25}
+}
+
+@article{usta_webgpu_2024,
+	title = {{WEBGPU}: A {NEW} {GRAPHIC} {API} {FOR} 3D {WEBGIS} {APPLICATIONS}},
+	volume = {{XLVIII}-4/W9-2024},
+	url = {https://isprs-archives.copernicus.org/articles/XLVIII-4-W9-2024/377/2024/},
+	doi = {10.5194/isprs-archives-XLVIII-4-W9-2024-377-2024},
+	pages = {377--382},
+	journaltitle = {The International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences},
+	author = {Usta, Z.},
+	date = {2024},
+}
+
+@misc{webgpu-gpuweb,
+  author       = {{GPU for the Web Working Group}},
+  title        = {{WebGPU (GPU for the Web) Specification}},
+  year         = {2026},
+  note         = {Editor’s Draft},
+  howpublished = {\url{https://gpuweb.github.io/gpuweb/}},
+  urldate      = {2026-01-25}
+}
+
+
+  @misc{realtimeclothsimulation,
+      title={Real-Time Cloth Simulation Using WebGPU: Evaluating Limits of High-Resolution}, 
+      author={Nak-Jun Sung and Jun Ma and TaeHeon Kim and Yoo-joo Choi and Min-Hyung Choi and Min Hong},
+      year={2025},
+      eprint={2507.11794},
+      archivePrefix={arXiv},
+      primaryClass={cs.GR},
+      url={https://arxiv.org/abs/2507.11794}, 
+}
+
+  @inproceedings{terascalewebviz,
+author = {Congote, John and Segura, Alvaro and Kabongo, Luis and Moreno, Aitor and Posada, Jorge and Ruiz, Oscar},
+title = {Interactive visualization of volumetric data with WebGL in real-time},
+year = {2011},
+isbn = {9781450307741},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2010425.2010449},
+doi = {10.1145/2010425.2010449},
+abstract = {This article presents and discusses the implementation of a direct volume rendering system for the Web, which articulates a large portion of the rendering task in the client machine. By placing the rendering emphasis in the local client, our system takes advantage of its power, while at the same time eliminates processing from unreliable bottlenecks (e.g. network). The system developed articulates in efficient manner the capabilities of the recently released WebGL standard, which makes available the accelerated graphic pipeline (formerly unusable). The dependency on specially customized hardware is eliminated, and yet efficient rendering rates are achieved. The Web increasingly competes against desktop applications in many scenarios, but the graphical demands of some of the applications (e.g. interactive scientific visualization by volume rendering), have impeded their successful settlement in Web scenarios. Performance, scalability, accuracy, security are some of the many challenges that must be solved before visual Web applications popularize. In this publication we discuss both performance and scalability of the volume rendering by WebGL ray-casting in two different but challenging application domains: medical imaging and radar meteorology.},
+booktitle = {Proceedings of the 16th International Conference on 3D Web Technology},
+pages = {137–146},
+numpages = {10},
+keywords = {weather radar volume, real-time visualization, ray casting, medical imaging, direct volume rendering, WebGL},
+location = {Paris, France},
+series = {Web3D '11}
+}
+
 @article{owens2007,
 author = {Owens, John and Houston, Mike and Luebke, David and Green, Simon and Stone, John and Phillips, James},
 year = {2008},
@@ -129,7 +205,7 @@ doi = {10.1016/B978-0-12-384988-5.00006-1}
  title = {Galactic Dynamics: Second Edition},
  urldate = {2026-01-25},
  year = {2008}
-}
+} w
 
 
 
