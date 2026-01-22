@@ -19,6 +19,22 @@
   note         = {Accessed: 2026-01-25}
 }
 
+  
+@article{zwart_high-performance_2007,
+title = {High-performance direct gravitational N-body simulations on graphics processing units},
+volume = {12},
+issn = {1384-1076},
+url = {https://www.sciencedirect.com/science/article/pii/S1384107607000504},
+doi = {https://doi.org/10.1016/j.newast.2007.05.004},
+abstract = {We present the results of gravitational direct N-body simulations using the commercial graphics processing units ({GPU}) {NVIDIA} Quadro {FX}1400 and {GeForce} 8800GTX, and compare the results with {GRAPE}-6Af special purpose hardware. The force evaluation of the N-body problem was implemented in Cg using the {GPU} directly to speed-up the calculations. The integration of the equations of motions were, running on the host computer, implemented in C using the 4th order predictor–corrector Hermite integrator with block time steps. We find that for a large number of particles (N≳104) modern graphics processing units offer an attractive low cost alternative to {GRAPE} special purpose hardware. A modern {GPU} continues to give a relatively flat scaling with the number of particles, comparable to that of the {GRAPE}. The {GRAPE} is designed to reach double precision, whereas the {GPU} is intrinsically single-precision. For relatively large time steps, the total energy of the N-body system was conserved better than to one in 106 on the {GPU}, which is impressive given the single-precision nature of the {GPU}. For the same time steps, the {GRAPE} gave somewhat more accurate results, by about an order of magnitude. However, smaller time steps allowed more energy accuracy on the grape, around 10−11, whereas for the {GPU} machine precision saturates around 10−6 For N≳106 the {GeForce} 8800GTX was about 20 times faster than the host computer. Though still about a factor of a few slower than {GRAPE}, modern {GPUs} outperform {GRAPE} in their low cost, long mean time between failure and the much larger onboard memory; the {GRAPE}-6Af holds at most 256k particles whereas the {GeForce} 8800GTX can hold 9 million particles in memory.},
+pages = {641--650},
+number = {8},
+journaltitle = {New Astronomy},
+author = {Zwart, Simon F. Portegies and Belleman, Robert G. and Geldof, Peter M.},
+date = {2007},
+keywords = {Gravitation, Methods: -body simulation, Methods: Numerical, Stellar dynamics},
+}
+
 @article{bedorf2010,
 author = {Gaburov, Evghenii and Bédorf, Jeroen and Portegies Zwart, Simon},
 year = {2010},
