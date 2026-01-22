@@ -69,7 +69,17 @@ arrow(a)_i = frac(d arrow(v)_i, d t) ,#h(1cm)  arrow(v)_i = frac(d arrow(r)_i, d
 Because these equations generally cannot be solved analytically for systems containing many interacting particles, their evolution must be approximated numerically. Numerical integration methods advance the particle positions and velocities forward in time using discrete timesteps of size $Delta t$, approximating the continuous dynamics of the system.
  
 One of the simplest numerical integration schemes is the forward Euler method. In this approach, particle positions are updated using the current velocity according to
+#math.equation(
+$
+  arrow(r)_(i)^(n+1) = arrow(r)_(i)^(n) + arrow(v)_(i)^(n) Delta t
+$
+)
 
+Where the superscript $n$ denotes the discrete timestep, with $arrow(r)_(i)^(0)$ representing the initial particle position. Velocities are updated similarly using the acceleration computed from the forces at the current timestep. While the Euler method is computationally inexpensive and straightforward to implement, it suffers from poor numerical stability and does not conserve energy, leading to significant accumulated errors and unphysical behavior over long integration times.
+
+As a result, astrophysical N-body simulations commonly employ symplectic integration schemes such as the Verlet or leapfrog methods, which are specifically designed to preserve the Hamiltonian structure of the equations of motion. These methods exhibit significantly improved long-term energy conservation and are therefore better suited for simulations of galactic dynamics that require stable evolution over many dynamical timescales @springel_2005.
+
+In Barnes–Hut simulations, errors introduced by numerical integration interact with approximation errors arising from hierarchical force evaluation @skeletons_1994. Prior studies have shown that, for many galactic-scale simulations, integration error can dominate force-approximation error when inappropriate timestepping schemes or integration methods are used @springel_2005. Consequently, careful selection of numerical integration techniques remains essential even when approximate force models are employed.
 == GPU Acceleration of Hierarchical N-Body Methods
 
 The computational demands of gravitational N-body simulations have made them a natural target for graphics processing units (GPUs), which provide massive data parallelism and high memory bandwidth. Modern GPUs are designed with thousands of small, efficient cores capable of executing the same operation on many data elements simultaneously @fluke2011. This architecture is particularly well-suited to the independent, particle-wise force computations inherent in N-body simulations @fastnbody.
