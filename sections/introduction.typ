@@ -26,9 +26,9 @@ According to Newton’s law of universal gravitation, the force exerted on a par
   $,
 )
 
-In Equation 1, $arrow(F)_(i j)$ denotes the gravitational force exerted on particle $i$ by particle $j$, and $G$ is the gravitational constant. The quantities $m_i$ and $m_j$ represent the masses of particles $i$ and $j$, respectively. The vectors $r_i$ and $r_j$ give the positions of particles $i$ and $j$ in three-dimensional space.
+Where $arrow(F)_(i j)$ denotes the gravitational force exerted on particle $i$ by particle $j$, and $G$ is the gravitational constant. The quantities $m_i$ and $m_j$ represent the masses of particles $i$ and $j$, respectively. The vectors $arrow(r)_i$ and $arrow(r)_j$ give the positions of particles $i$ and $j$ in three-dimensional space.
 
-The vector difference $r_j$ − $r_i$ points from particle $i$ toward particle $j$, while $|r_j − r_i|$ denotes the Euclidean distance between the two particles. The cubic power of the distance in the denominator ensures that the magnitude of the force follows an inverse-square law while preserving the correct force direction.
+The vector difference $arrow(r)_j$ − $arrow(r)_i$ points from particle $i$ toward particle $j$, while $|arrow(r)_j − arrow(r)_i|$ denotes the Euclidean distance between the two particles. The cubic power of the distance in the denominator ensures that the magnitude of the force follows an inverse-square law while preserving the correct force direction.
 
 The total gravitational force acting on particle $i$ is obtained by summing the pairwise force contributions from all other particles in the system, excluding self-interaction,
 #math.equation(
