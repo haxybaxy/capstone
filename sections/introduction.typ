@@ -1,5 +1,8 @@
 #pagebreak()
 = Literature Review
+Accurate simulation of galactic dynamics requires resolving gravitational interactions across large numbers of particles while maintaining numerical stability over long integration times. Achieving this balance has historically required substantial computational resources and specialized software, placing high-fidelity N-body simulations largely outside the reach of lightweight or widely accessible platforms. As a result, the relevant literature spans several traditionally separate domains, including astrophysical N-body methods, numerical integration techniques, GPU-accelerated computing, and browser-based visualization technologies.
+
+This literature review is organized to clarify how these areas intersect and to highlight the technical gap addressed by this work. It first examines the physical and algorithmic foundations of gravitational N-body simulation, with particular attention to the computational scaling challenges that motivate hierarchical approximation methods such as Barnes–Hut. It then surveys prior efforts to accelerate N-body simulations using GPU architectures, followed by an examination of web-based GPU access through WebGL and its limitations for physically accurate simulation. Finally, it introduces WebGPU as a modern alternative that enables general-purpose GPU computation in the browser, setting the stage for the investigation of whether high-performance, physically accurate galaxy simulations can be realized in an accessible, web-based environment, with code that can be written once and ran everywhere, achieving close to native performance.
 
 #set heading(numbering: none)
 
@@ -48,9 +51,24 @@ By replacing many distant pairwise interactions with aggregate approximations, B
 
 == Numerical Integration and Stability Considerations
 
-In addition to force evaluation, the accuracy and long-term stability of N-body simulations depend critically on the choice of numerical integration scheme. Simple methods such as forward Euler integration are computationally inexpensive but suffer from poor energy conservation, leading to unphysical behavior over long time scales. As a result, symplectic integrators such as Verlet or leapfrog methods are commonly employed in astrophysical simulations due to their improved conservation properties @springel_2005.
+In addition to force evaluation, the accuracy and long-term stability of N-body simulations depend critically on the numerical integration of the equations of motion. In gravitational N-body problems, the primary quantity of interest is the time evolution of the particle positions, which is governed by Newton’s equations of motion. For each particle $i$, the total gravitational force resulting from interactions with all other particles determines its acceleration according to
 
-In Barnes–Hut simulations, integration error interacts with approximation error introduced by hierarchical force evaluation @skeletons_1994. Prior studies have shown that, for many galactic-scale simulations, integration error can dominate approximation error if inappropriate time-stepping schemes are used @springel_2005. Consequently, careful selection of integration methods remains essential even when approximate force models are employed.
+#math.equation($
+    sum_(j)arrow(F)_(i j) = m_i arrow(a)_i
+$
+)
+
+Where $arrow(a)_i$ is the acceleration of the particle $i$. The acceleration is related to the particle velocity and position through time derivatives,
+
+#math.equation(
+  $
+arrow(a)_i = frac(d arrow(v)_i, d t) ,#h(1cm)  arrow(v)_i = frac(d arrow(r)_i, d t)
+  $
+)
+
+Because these equations generally cannot be solved analytically for systems containing many interacting particles, their evolution must be approximated numerically. Numerical integration methods advance the particle positions and velocities forward in time using discrete timesteps of size $Delta t$, approximating the continuous dynamics of the system.
+ 
+One of the simplest numerical integration schemes is the forward Euler method. In this approach, particle positions are updated using the current velocity according to
 
 == GPU Acceleration of Hierarchical N-Body Methods
 
@@ -76,10 +94,3 @@ WebGPU is a modern web standard designed to provide low-level, high-performance 
 Central to WebGPU’s computational model is the compute shader: a general-purpose GPU program that executes independently of the rendering pipeline. Compute shaders allow developers to express parallel workloads directly in terms of data processing rather than image generation, making them well suited to scientific computing tasks such as particle simulation, spatial partitioning, and force evaluation @realtimeclothsimulation @usta_webgpu_2024. This model enables algorithms to be structured in a manner similar to native GPU implementations, without the need for graphics-specific workarounds @realitycheck.
 
 The explicit memory model and flexible buffer abstractions provided by WebGPU make it possible to represent complex data structures, including hierarchical trees and linearized spatial indices, directly on the GPU @realtimeclothsimulation @usta_webgpu_2024. These features are particularly relevant for Barnes–Hut simulations, which rely on dynamic tree construction and traversal to achieve sub-quadratic scaling. While such patterns were previously impractical in web environments, WebGPU enables their implementation with performance characteristics comparable to native GPU code, subject to browser and hardware constraints @realitycheck.
-
-== Positioning of This Work
-While native GPU implementations of Barnes–Hut have been extensively studied @cudabarnes, prior web-based simulations have largely emphasized visualization and graphics rather than physics-accurate N-body computation @terascalewebviz. Existing WebGL approaches typically rely on approximations that simplify or bypass hierarchical force computation, limiting their scientific validity @realitycheck.
-
-WebGPU presents a unique opportunity to bridge this gap: by enabling true general-purpose GPU computation in the browser @usta_webgpu_2024, it allows for hierarchical algorithms such as Barnes–Hut to be implemented without forcing the computation through the graphics pipeline. WebGPU provides the parallel performance necessary to handle large particle counts efficiently, making physically accurate simulations feasible in a lightweight, interactive environment.
-
-This thesis investigates how Barnes–Hut hierarchical N-body simulations can be adapted to WebGPU, aiming to demonstrate that accurate galaxy simulations can be performed in-browser without compromising performance. By doing so, this work seeks to democratize astrophysical simulation, allowing users to explore large-scale galactic dynamics interactively without requiring high-end hardware, complex software setup, or native GPU access.
