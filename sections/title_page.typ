@@ -13,17 +13,17 @@
 #image("../graphics/SST.png", width: 40%)
 #v(1.5cm)
 
-#text(size: 24pt, weight: "bold")[Title of the project]
+#text(size: 24pt, weight: "bold")[Heirarchical N-Body Simulation of Galactic Dynamics in WebGPU]
 #v(0.5cm)
 
-#text(size: 18pt, style: "italic")[Subtitle of the project]
+#text(size: 18pt, style: "italic")[Enabling Scalable and Interactive Physics Simulations on Modern Web Platforms]
 #v(1cm)
 
-#text(size: 16pt, weight: "bold")[Your name]
+#text(size: 16pt, weight: "bold")[Zaid Alsaheb]
 #v(0.2cm)
 
 #text(size: 14pt, style: "italic")[Bachelor of Computer Science & Artificial Intelligence]
 #v(0.5cm)
 
-#text(size: 16pt, style: "italic")[Supervised by:]
+#text(size: 16pt, style: "italic")[Supervised by: Professor Raul Perez Pelaez]
 
