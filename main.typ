@@ -13,7 +13,7 @@
   )
 }
 
-#set par(leading: 1.0em)
+#set par(leading: 1.0em, first-line-indent: 1.5em)
 
 #set page(
   header: context [
@@ -21,7 +21,7 @@
       columns: (1fr, auto),
       align: (left, right),
       gutter: 0pt,
-      [Fancy Head], [#counter(page).display("1")],
+      [Hierarchical N-Body Simulation of Galactic Dynamics in WebGPU], [#counter(page).display("1")],
     )
   ],
   footer: [],
