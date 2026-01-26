@@ -1,6 +1,8 @@
 #pagebreak()
 = Literature Review
+
 #set heading(numbering: none)
+
 == Computational Constraints in Astrophysical Simulation
 Over the past decades, progress in computational astrophysics has closely followed the performance improvements predicted by Moore’s Law, with central processing unit (CPU) speeds increasing at a near-exponential rate. Once an algorithm was implemented, substantial performance gains could often be achieved simply by running existing code on newer hardware, with minimal additional development effort. However, as single-core CPU performance has plateaued @freelunchover, this implicit scaling model has begun to break down.  As a result, continued advances in computational astrophysics increasingly depend on exploiting parallelism and adapting algorithms to emerging computing architectures @fluke2011.
 
@@ -19,6 +21,9 @@ According to Newton’s law of universal gravitation, the force exerted on a par
     )
   $,
 )
+In Equation 1, $arrow(F)_(i j)$ denotes the gravitational force exerted on particle $i$ by particle $j$, and $G$ is the gravitational constant. The quantities $m_i$ and $m_j$ represent the masses of particles $i$ and $j$, respectively. The vectors $r_i$ and $r_j$ give the positions of particles $i$ and $j$ in three-dimensional space.
+
+The vector difference $r_j$ − $r_i$ points from particle $i$ toward particle $j$, while $|r_j − r_i|$ denotes the Euclidean distance between the two particles. The cubic power of the distance in the denominator ensures that the magnitude of the force follows an inverse-square law while preserving the correct force direction.
 
 The total force acting on particle $i$ is obtained by summing the contributions from all other particles in the system,
 #math.equation(
