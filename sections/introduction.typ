@@ -25,7 +25,7 @@ In Equation 1, $arrow(F)_(i j)$ denotes the gravitational force exerted on parti
 
 The vector difference $r_j$ − $r_i$ points from particle $i$ toward particle $j$, while $|r_j − r_i|$ denotes the Euclidean distance between the two particles. The cubic power of the distance in the denominator ensures that the magnitude of the force follows an inverse-square law while preserving the correct force direction.
 
-The total force acting on particle $i$ is obtained by summing the contributions from all other particles in the system,
+The total gravitational force acting on particle $i$ is obtained by summing the pairwise force contributions from all other particles in the system, excluding self-interaction,
 #math.equation(
   $
     arrow(F)_i = 
