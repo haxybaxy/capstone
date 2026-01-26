@@ -1,5 +1,6 @@
 #pagebreak()
 = Literature Review
+#set heading(numbering: none)
 == Computational Constraints in Astrophysical Simulation
 Over the past decades, progress in computational astrophysics has closely followed the performance improvements predicted by Moore’s Law, with central processing unit (CPU) speeds increasing at a near-exponential rate. Once an algorithm was implemented, substantial performance gains could often be achieved simply by running existing code on newer hardware, with minimal additional development effort. However, as single-core CPU performance has plateaued @freelunchover, this implicit scaling model has begun to break down.  As a result, continued advances in computational astrophysics increasingly depend on exploiting parallelism and adapting algorithms to emerging computing architectures @fluke2011.
 
@@ -9,7 +10,6 @@ Among the most computationally demanding problems in astrophysics are gravitatio
 
 According to Newton’s law of universal gravitation, the force exerted on a particle of mass $m_(i)$ by another particle of mass $m_(j)$ is given by
 #math.equation(
-  block: true,
   $
     arrow(F)_(i j) =
     G frac(
@@ -22,9 +22,8 @@ According to Newton’s law of universal gravitation, the force exerted on a par
 
 The total force acting on particle $i$ is obtained by summing the contributions from all other particles in the system,
 #math.equation(
-  block: true,
   $
-    arrow(F)_i
+    arrow(F)_i = 
     sum_(j != i)^N
     G frac(
       m_i m_j (arrow(r)_j - arrow(r)_i),
