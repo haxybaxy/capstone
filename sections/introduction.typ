@@ -17,7 +17,7 @@ According to Newton’s law of universal gravitation, the force exerted on a par
 
 #math.equation(
   $
-    arrow(F)_(i j)
+    arrow(F)_(i j) =
     G frac(
       m_i m_j (arrow(r)_j - arrow(r)_i)
       ,
