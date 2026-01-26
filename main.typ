@@ -29,7 +29,7 @@
   footer: [],
 )
 
-#set bibliography(style: "ieee") // numeric-ish
+#set bibliography(style: "apa") // numeric-ish
 
 #include "sections/title_page.typ"
 // #include "sections/abstract.typ"

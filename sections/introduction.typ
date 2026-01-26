@@ -9,14 +9,15 @@ This literature review is organized to clarify how these areas intersect and to 
 == Computational Constraints in Astrophysical Simulation
 Over the past decades, progress in computational astrophysics has closely followed the performance improvements predicted by Moore’s Law, with central processing unit (CPU) speeds increasing at a near-exponential rate. Once an algorithm was implemented, substantial performance gains could often be achieved simply by running existing code on newer hardware, with minimal additional development effort. However, as single-core CPU performance has plateaued @freelunchover, this implicit scaling model has begun to break down.  As a result, continued advances in computational astrophysics increasingly depend on exploiting parallelism and adapting algorithms to emerging computing architectures @fluke2011.
 
-One of the most significant architectural shifts has been the widespread adoption of graphics processing units (GPUs), which offer massive parallelism and high memory bandwidth. While GPUs provide the potential for orders-of-magnitude performance improvements @surveyofcomputation, realizing these gains typically requires substantial algorithmic reformulation. Algorithms that scale well on serial or modestly parallel CPUs may perform poorly on highly parallel architectures if they involve irregular control flow or memory access pattern  @cudabarnes. 
+One of the most significant architectural shifts has been the widespread adoption of graphics processing units (GPUs), which offer massive parallelism and high memory bandwidth. While GPUs provide the potential for orders-of-magnitude performance improvements @surveyofcomputation, realizing these gains typically requires substantial algorithmic reformulation. Algorithms that scale well on serial or modestly parallel CPUs may perform poorly on highly parallel architectures if they involve irregular control flow or memory access pattern  @cudabarnes.
 == Gravitational N-Body Simulations and Quadratic Scaling
 Among the most computationally demanding problems in astrophysics are gravitational N-body simulations, which form the foundation of many studies in galactic dynamics and structure formation @galacticdynamics2nded. In such simulations, a galaxy is modeled as a system of particles (representing stars or dark matter) whose evolution is governed by their mutual gravitational interactions @zwart_high-performance_2007.
 
 According to Newton’s law of universal gravitation, the force exerted on a particle of mass $m_(i)$ by another particle of mass $m_(j)$ is given by
+
 #math.equation(
   $
-    arrow(F)_(i j) =
+    arrow(F)_(i j)
     G frac(
       m_i m_j (arrow(r)_j - arrow(r)_i)
       ,
@@ -24,6 +25,7 @@ According to Newton’s law of universal gravitation, the force exerted on a par
     )
   $,
 )
+
 In Equation 1, $arrow(F)_(i j)$ denotes the gravitational force exerted on particle $i$ by particle $j$, and $G$ is the gravitational constant. The quantities $m_i$ and $m_j$ represent the masses of particles $i$ and $j$, respectively. The vectors $r_i$ and $r_j$ give the positions of particles $i$ and $j$ in three-dimensional space.
 
 The vector difference $r_j$ − $r_i$ points from particle $i$ toward particle $j$, while $|r_j − r_i|$ denotes the Euclidean distance between the two particles. The cubic power of the distance in the denominator ensures that the magnitude of the force follows an inverse-square law while preserving the correct force direction.
@@ -31,7 +33,7 @@ The vector difference $r_j$ − $r_i$ points from particle $i$ toward particle $
 The total gravitational force acting on particle $i$ is obtained by summing the pairwise force contributions from all other particles in the system, excluding self-interaction,
 #math.equation(
   $
-    arrow(F)_i = 
+    arrow(F)_i =
     sum_(j != i)^N
     G frac(
       m_i m_j (arrow(r)_j - arrow(r)_i),
@@ -40,7 +42,7 @@ The total gravitational force acting on particle $i$ is obtained by summing the 
   $,
 )
 
-Evaluating this expression requires computing $N - 1$ pairwise interactions per particle. Consequently, a direct implementation of gravitational force evaluation scales as $O(N^2)$ per simulation timestep. This quadratic scaling rapidly becomes computationally prohibitive as the number of particles increases, particularly when long integration times are required to observe large-scale dynamical phenomena such as spiral structure or halo evolution.
+Evaluating this expression requires computing $N - 1$ pairwise interactions per particle. Consequently, a direct implementation of gravitational force evaluation scales as $O(N^2)$ per simulation timestep. This quadratic scaling rapidly becomes computationally prohibitive as the number of particles increases, particularly when long integration times are required to observe large-scale dynamical phenomena such as spiral structure or halo evolution @zwart_high-performance_2007.
 
 == Hierarchical Approximation and the Barnes–Hut Algorithm
 To address the computational limitations imposed by direct force evaluation, a variety of approximation techniques have been developed to reduce the cost of N-body simulations while preserving essential physical behavior. One of the most influential of these methods is the Barnes–Hut algorithm, which exploits the hierarchical spatial structure of particle distributions to approximate gravitational interactions @barneshut.
@@ -53,26 +55,27 @@ By replacing many distant pairwise interactions with aggregate approximations, B
 
 In addition to force evaluation, the accuracy and long-term stability of N-body simulations depend critically on the numerical integration of the equations of motion. In gravitational N-body problems, the primary quantity of interest is the time evolution of the particle positions, which is governed by Newton’s equations of motion. For each particle $i$, the total gravitational force resulting from interactions with all other particles determines its acceleration according to
 
-#math.equation($
+#math.equation(
+  $
     sum_(j)arrow(F)_(i j) = m_i arrow(a)_i
-$
+  $,
 )
 
 Where $arrow(a)_i$ is the acceleration of the particle $i$. The acceleration is related to the particle velocity and position through time derivatives,
 
 #math.equation(
   $
-arrow(a)_i = frac(d arrow(v)_i, d t) ,#h(1cm)  arrow(v)_i = frac(d arrow(r)_i, d t)
-  $
+    arrow(a)_i = frac(d arrow(v)_i, d t) ,#h(1cm) arrow(v)_i = frac(d arrow(r)_i, d t)
+  $,
 )
 
 Because these equations generally cannot be solved analytically for systems containing many interacting particles, their evolution must be approximated numerically. Numerical integration methods advance the particle positions and velocities forward in time using discrete timesteps of size $Delta t$, approximating the continuous dynamics of the system.
- 
+
 One of the simplest numerical integration schemes is the forward Euler method. In this approach, particle positions are updated using the current velocity according to
 #math.equation(
-$
-  arrow(r)_(i)^(n+1) = arrow(r)_(i)^(n) + arrow(v)_(i)^(n) Delta t
-$
+  $
+    arrow(r)_(i)^(n+1) = arrow(r)_(i)^(n) + arrow(v)_(i)^(n) Delta t
+  $,
 )
 
 Where the superscript $n$ denotes the discrete timestep, with $arrow(r)_(i)^(0)$ representing the initial particle position. Velocities are updated similarly using the acceleration computed from the forces at the current timestep. While the Euler method is computationally inexpensive and straightforward to implement, it suffers from poor numerical stability and does not conserve energy, leading to significant accumulated errors and unphysical behavior over long integration times.
@@ -84,7 +87,7 @@ In Barnes–Hut simulations, errors introduced by numerical integration interact
 
 The computational demands of gravitational N-body simulations have made them a natural target for graphics processing units (GPUs), which provide massive data parallelism and high memory bandwidth. Modern GPUs are designed with thousands of small, efficient cores capable of executing the same operation on many data elements simultaneously @fluke2011. This architecture is particularly well-suited to the independent, particle-wise force computations inherent in N-body simulations @fastnbody.
 
-To leverage GPUs effectively, computational tasks are expressed in terms of small programs that run on the GPU cores called shaders. Originally, shaders were designed to compute visual effects for rendering pipelines, including vertex transformations, fragment coloring, and texture operations. Early GPU-based scientific computing therefore relied on repurposing graphics shaders for numerical tasks, encoding computation as rendering operations and storing data in textures @owens2007. 
+To leverage GPUs effectively, computational tasks are expressed in terms of small programs that run on the GPU cores called shaders. Originally, shaders were designed to compute visual effects for rendering pipelines, including vertex transformations, fragment coloring, and texture operations. Early GPU-based scientific computing therefore relied on repurposing graphics shaders for numerical tasks, encoding computation as rendering operations and storing data in textures @owens2007.
 
 Over time, GPU programming languages such as CUDA and OpenCL have generalized this model to allow general-purpose computation, enabling the parallel execution of tasks that are not directly related to graphics, including N-body simulations @fastnbody @fluke2011.
 
