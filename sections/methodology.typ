@@ -76,3 +76,64 @@ These are computed on the CPU from the mirror arrays for evaluation and do not a
 - *Linear momentum*: $P = sum(m_i * v_i)$ (3D vector, double precision) and its magnitude $|P|$
 - *Runtime per pass*: tree build, force computation, and integration timings via `std::chrono::high_resolution_clock`
 
+=== Simulation 
+```
+Config (CLI args: seed, N, dt, theta, epsilon, steps, scenario, integrator)
+        |
+        v
+Initial condition generator  --->  CPU arrays (positions, velocities) + GPU buffers
+        |
+        v
+Compute initial forces (tree build + CPU & GPU force evaluation)
+        |
+        v
+For each timestep (KDK leapfrog):
+  (1) Half-kick:  CPU loop + GPU kick shader         v += a * dt/2
+  (2) Drift:      CPU loop + GPU drift shader         x += v * dt
+  (3) Tree build:
+      GPU: LBVH pipeline (bbox → Morton → sort → Karras → leafInit → aggregate)
+      CPU: mirror octree build (for diagnostics)
+  (4) Force:      CPU Barnes-Hut + GPU BVH force      a = tree traversal
+  (5) Half-kick:  CPU loop + GPU kick shader          v += a * dt/2
+  (6) Optional: diagnostics (CPU) + render (GPU)
+        |
+        v
+Logs: timing breakdown, energy/momentum (CSV export via --export)
+```
+
+== Physical model and governing equations
+Each particle represents a mass element (star/dark matter tracer) evolving under self-gravity. The acceleration of particle i is:
+
+$a_i = G * sum_{j != i} m_j * (r_j - r_i) / (|r_j - r_i|^2 + epsilon^2)^(3/2)$
+
+where G is the gravitational constant (set to 1 in dimensionless units), and epsilon is the softening length (default: 0.5).
+
+*Mass storage*: each particle's mass is packed into the w-component of its position vector (vec4: x, y, z, mass), avoiding a separate mass buffer and reducing memory bandwidth.
+
+*Boundary conditions*: an isolated (open) system is assumed. No periodic boundary conditions are applied, consistent with an isolated-galaxy demonstration.
+
+== Numerical Integration
+
+To avoid the instability and energy drift typical of forward Euler in gravitational systems, the simulation uses a second-order symplectic leapfrog scheme (kick-drift-kick), with fixed timestep $d t$ (default: 0.001):
+
+1. *Half-kick*:
+   $v_i^{n+1/2} = v_i^n + (d t/2) * a_i^n$
+2. *Drift*:
+   $r_i^{n+1} = r_i^n + d t * v_i^{n+1/2}$
+3. *Recompute acceleration* $a_i^{n+1}$ from updated positions. On the GPU, this involves building the LBVH via 7 compute passes (see Section 2.8.5) followed by BVH force traversal. On the CPU mirror, the octree is rebuilt and traversed for diagnostic cross-validation.
+
+4. *Half-kick*:
+   $v_i^{n+1} = v_i^{n+1/2} + (d t/2) * a_i^{n+1}$
+
+Each phase executes on *both CPU and GPU in parallel*: the CPU performs scalar loops over the mirror arrays while the GPU dispatches the corresponding compute shader. This dual-track design is detailed in Section 2.7.
+
+*Euler fallback*: a forward Euler integrator is preserved as a `--integrator euler` option. Its step sequence is: octree build -> force evaluation -> single integration pass $(v += a * d t; x += v * d t)$. This serves as a baseline to demonstrate the stability advantage of leapfrog.
+
+Symplectic methods better preserve Hamiltonian structure and long-term qualitative behavior in collisionless galactic simulations. @springel_2005 
+
+
+=
+
+
+
+
