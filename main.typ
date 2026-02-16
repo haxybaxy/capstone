@@ -34,7 +34,7 @@
 #include "sections/title_page.typ"
 // #include "sections/abstract.typ"
 #include "sections/introduction.typ"
-// #include "sections/methodology.typ"
+#include "sections/methodology.typ"
 // #include "sections/experiments.typ"
 // #include "sections/results.typ"
 // #include "sections/discussion.typ"
