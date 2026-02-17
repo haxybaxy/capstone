@@ -5,6 +5,12 @@
 **Author:** Zaid Alsaheb
 **Supervisor:** Professor Raul Perez Pelaez
 
+
+You can check out the simulation on your web browser [here!](https://haxybaxy.github.io/webgpu-galaxy/) (Only compatible with chrome)
+
+The paper is also available [here](https://github.com/haxybaxy/capstone) if you don't want to download it.
+
+
 ---
 
 ## Overview
