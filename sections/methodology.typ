@@ -215,3 +215,21 @@ Tree traversal is implemented iteratively in the BVH force shader. One GPU threa
 
 This approach preserves the Barnes–Hut approximation structure while accommodating GPU execution constraints and limiting branch divergence where possible @fastnbody @cudabarnes @maximizeparallel .
 
+=== GPU LBVH construction (Karras 2012)
+
+
+The LBVH is built fully on-device in seven conceptual steps:
+
+1. Two-pass parallel reduction to compute global AABB.
+2. Morton code generation by normalizing positions to a $[0,1023]^3$ integer grid and interleaving bits (30-bit code).
+3. Bitonic sort of Morton codes and particle indices (key–value), using multiple $(k,j)$ sub-passes with dynamic uniform offsets; padded-to-power-of-two arrays are used, with sentinel codes for padding elements.
+4. Parallel binary tree topology construction using the Karras (2012) delta function (leading zeros of XOR of adjacent codes, with tie-breaking for duplicates).
+5. Leaf initialization mapping sorted indices to particle positions/masses and point AABBs.
+6. Bottom-up aggregation of internal-node AABBs and centers of mass using atomic counters to ensure both children are ready before parent evaluation.
+
+The resulting BVH is immediately traversable without CPU-side construction or upload, eliminating a per-step CPU bottleneck in the primary mode.
+
+=== CPU octree construction (fallback paths)
+
+The CPU octree is used only by Euler and CPU-tree leapfrog modes. It is built from CPU mirror arrays by computing a bounding box, inserting particles via octant selection, propagating centers of mass bottom-up, and optionally flattening to a GPU-friendly node array when GPU evaluation is used. GPU buffers auto-resize during uploads when needed.
+
