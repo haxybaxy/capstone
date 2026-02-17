@@ -5,7 +5,7 @@
 This work adopts a computational-methods design in which a gravitational $N$-body solver is implemented and evaluated with a focus on reproducibility, long-term numerical stability, and computational scalibility beyond the $O(N^2)$ cost of direct summation. The solver is implemented in C++20 using the WebGPU C API and is built from a single codebase targetting both:
 - Native desktop execution, using WebGPU backends such as wgpu-native and Dawn.
 - Browser execution, compiled via Emscripten.
-This dual-target approach enables interactive visualizaiton as well as headless batch runs, allowing performance and numerical behavior to be evaluated under comparable conditions across platforms. 
+This dual-target approach enables interactive visualizaiton as well as headless batch runs, allowing performance and numerical behavior to be evaluated under comparable conditions across platforms.
 
 The methodological choices follwo directly from the literature foundations on hierarchical $N$-body simulation and GPU parallelism:
 - *Force Model*: Newtonian gravity with Plummer-type softening to avoid the $1/r^2$ singularity and reduce spurious two-body relaxation in collisionless regimes.
@@ -28,13 +28,13 @@ Each experiment is fully specified by command-line parameters: scenario type, se
 
 - *Scope*: $N = 2$ (enforced regardless of the `--N` parameter)
 - *Purpose*: verifies integrator correctness and sensitivity to $Delta t$ and $epsilon$.
-- *Setup*: two equal-mass particles ($m = 1000$ each) separated by $d = 10$ units along the $x$-axis, with tangential velocities along the $z$-axis computed for a softened circular orbit: 
+- *Setup*: two equal-mass particles ($m = 1000$ each) separated by $d = 10$ units along the $x$-axis, with tangential velocities along the $z$-axis computed for a softened circular orbit:
 #math.equation(
-$
-  v = sqrt(frac(G m d^2,2 (d^2 + epsilon^2)^(3/2)))
-$
+  $
+    v = sqrt(frac(G m d^2, 2 (d^2 + epsilon^2)^(3/2)))
+  $,
 )
-- *Key variables*: $Delta t$, $epsilon$ 
+- *Key variables*: $Delta t$, $epsilon$
 - *Limitations*: not representative of large-N hierarchical behavior
 === Scenario B -- Plummer sphere (spherical equilibrium test)
 - *Scope*: $N in [10^3, 10^5]$ (depending on hardware).
@@ -42,20 +42,20 @@ $
 - *Setup*: a Plummer model @aarseth1974 with scale length $a = 5$. Radii sampled via inverse CDF:
 #math.equation(
   $
-  r = frac(a, sqrt(u^(-2/3)-1))
-  $
+    r = frac(a, sqrt(u^(-2/3)-1))
+  $,
 )
-with $u$ clamped to $[0.001, 0.999]$. Angular coordinates are isotropic (uniform $cos(theta)$, uniform $phi.alt$). Speeds are sampled via rejection sampling using 
+with $u$ clamped to $[0.001, 0.999]$. Angular coordinates are isotropic (uniform $cos(theta)$, uniform $phi.alt$). Speeds are sampled via rejection sampling using
 #math.equation(
-$
-  g(q) = q^2(1-q^2)^(7/2)
-$
+  $
+    g(q) = q^2(1-q^2)^(7/2)
+  $,
 )
 against the local escape velocity
 #math.equation(
-$
-v_e = sqrt(frac(2 G M, sqrt(r^2 + a^2)))
-$
+  $
+    v_e = sqrt(frac(2 G M, sqrt(r^2 + a^2)))
+  $,
 )
 with isotropic velocity directions.
 
@@ -67,9 +67,9 @@ with isotropic velocity directions.
 - *Purpose*: evaluates long-term evolution and visually interpretable galactic dynamics
 - *Setup*: radii drawn from an exponential distribution (rate 0.08) and  clamped to 50, uniform azimuth. Vertical height is drawn from $N(0, 0.3)$ scaled by $1/(1 + 0.5r)$. Masses are uniform in $[0.5, 2.0]$. Circular velocities are assigned with an approximate enclosed-mass estimate, using (for $r>0.1$)
 #math.equation(
-$
-  v = 0.5 sqrt(frac(M_"enclosed",r))
-$
+  $
+    v = 0.5 sqrt(frac(M_"enclosed", r))
+  $,
 )
 with tangential direction.
 - *Key variables*: disk scale length, thickness, velocity dispersion, $theta$, $Delta t$
@@ -81,12 +81,12 @@ Because these scenarios are stochastic, robustness is assessed by repeating runs
 == Physical model and state representation
 
 === Softened gravitational acceleration
-Each particle represents a mass element evolving under self-gravity in an isolated (open) domain. Using dimensionless units with 
+Each particle represents a mass element evolving under self-gravity in an isolated (open) domain. Using dimensionless units with
 $G=1$, the softened acceleration of particle $i$ is
 #math.equation(
-$
-  a_i = G sum_(j eq.not i) m_j frac(r_j - r_i,(||r_j - r_i||^2 + epsilon^2)^(3/2))
-$
+  $
+    a_i = G sum_(j eq.not i) m_j frac(r_j - r_i, (||r_j - r_i||^2 + epsilon^2)^(3/2))
+  $,
 )
 Softening parameter $epsilon$ defaults to 0.5 and is configurable.
 
@@ -102,20 +102,20 @@ GPU kernels operate in 32-bit floating point to maximize throughput and match ty
 The primary integration scheme is a fixed-timestep, second-order symplectic leapfrog (kick-drift-kick). With timestep $Delta t$ (default (0.0001) the update is:
 1. Half-kick
 #math.equation(
-$
-  v_i^(n+1/2) =  v_i^(n) + (Delta t)/2 a_i^n
-$
+  $
+    v_i^(n+1/2) = v_i^(n) + (Delta t)/2 a_i^n
+  $,
 )
 2. Drift
 #math.equation(
-$
-  r_i^(n+1) =  r_i^(n) + Delta t v_i^(n+1/2)
-$
+  $
+    r_i^(n+1) = r_i^(n) + Delta t v_i^(n+1/2)
+  $,
 )
 3. Recompute acceleration $a_i^(n+1)$ using updated positions
 4. Half kick
 $
-  v_i^(n+1) =  v_i^(n+1/2) + (Delta t)/2 a_i^(n+1)
+  v_i^(n+1) = v_i^(n+1/2) + (Delta t)/2 a_i^(n+1)
 $
 
 This choice is motivated by the well-known long-term stability advantages of symplectic schemes in gravitational dynamics @springel_2005, particularly when combined with approximate force evaluation.
@@ -124,36 +124,21 @@ This choice is motivated by the well-known long-term stability advantages of sym
 A forward Euler method is retained as `--integrator euler` to provide a stability baseline. Its update sequence is: tree build $arrow.r$ force evaluation $arrow.r$
 
 #math.equation(
-$
-  v arrow.l v + a Delta t,space r arrow.l r  + v Delta t
-$
+  $
+    v arrow.l v + a Delta t,space r arrow.l r + v Delta t
+  $,
 )
 
 == Hierarchical force evaluation
 === Monopole approximation
 Hierarchical evaluation approximates distant particle groups by a single monopole at the node center of mass. For a node with total mass $M$ and center of mass $R$,
-#math.equation(
-$
-  a_(i,"node") = G M frac(R-r_i,(||R-r_i||^2+epsilon^2)^(3/2))
-$
-),
+#math.equation($ a_(i,"node") = G M frac(R-r_i, (||R-r_i||^2+epsilon^2)^(3/2)) $),
 This monopole approximation is used consistently across both tree topologies implemented here: a binary BVH (GPU primary) and an 8-way octree (CPU fallback)  Only the tree representation and opening criterion differ.
 === Opening Criteria
 An internal node is accepted if it is sufficiently small relative to its distance from the target particle.
-- GPU BVH (tight AABB with maximum extent $"maxExtent"$): #math.equation(
-$
-  frac("maxExtent"^2,d^2) lt theta^2
-$) where #math.equation(
-$
-  "maxExtent" = max(Delta x, Delta y, Delta z)
-$
-) derived from node AABB bounds. This criterion reflects non-cubic node shapes in a BVH more accurately than a uniform half-width.
+- GPU BVH (tight AABB with maximum extent $"maxExtent"$): #math.equation($ frac("maxExtent"^2, d^2) lt theta^2 $) where #math.equation($ "maxExtent" = max(Delta x, Delta y, Delta z) $) derived from node AABB bounds. This criterion reflects non-cubic node shapes in a BVH more accurately than a uniform half-width.
 
-- CPU octree (half-width $h$, distance squared $d^2 = ||r_i - R||^2$): #math.equation(
-$
-  frac(h^2,d^2) lt theta^2
-$
-) This squared form avoids a square root.
+- CPU octree (half-width $h$, distance squared $d^2 = ||r_i - R||^2$): #math.equation($ frac(h^2, d^2) lt theta^2 $) This squared form avoids a square root.
 
 Default $theta=0.75$ is used as a practical balance between accuracy and performance.
 
@@ -232,4 +217,38 @@ The resulting BVH is immediately traversable without CPU-side construction or up
 === CPU octree construction (fallback paths)
 
 The CPU octree is used only by Euler and CPU-tree leapfrog modes. It is built from CPU mirror arrays by computing a bounding box, inserting particles via octant selection, propagating centers of mass bottom-up, and optionally flattening to a GPU-friendly node array when GPU evaluation is used. GPU buffers auto-resize during uploads when needed.
+
+== Rendering and interactive operation (visualization mode)
+
+For visualization, particles are rendered as instanced billboard quads with additive blending. Positions and colors are read directly from storage buffers via `@builtin(instance_index)` (no vertex buffer). Depth testing is enabled with depth writes disabled; fragments are masked to a circular footprint with a soft alpha falloff. An ImGui overlay provides interactive control of parameters and displays diagnostics and timing breakdowns. Rendering is a presentation layer and does not alter the simulation state.
+
+== Evaluation protocol: baselines, metrics, and parameter sweeps
+
+=== Baselines
+
+Two baselines are used:
+
+1. Direct summation: $O(N^2)$ for small $N$, used as a reference computation path. Additionally, potential energy is computed by direct pair summation only when $N lt.eq 5000$ due to its $O(N^2)$ cost.
+2. Forward Euler: (`--integrator euler`) as a numerical stability baseline relative to leapfrog.
+
+=== Primary metrics
+
+- *Runtime per timestep* (ms/step), broken down into:
+  - tree build time (GPU LBVH or CPU octree + upload),
+  - force evaluation time (GPU BVH traversal or CPU Barnes–Hut),
+  - integration time (kick/drift dispatches and any CPU mirror loops on fallback paths).
+    Timing is measured using `std::chrono::high_resolution_clock`.
+- *Scaling with particle count*: empirical scaling trends across (N) for hierarchical vs direct modes.
+- *Long-term stability* (where measurable): energy drift #math.equation($ Delta E(t) = frac(|E(t)-E(0)|, E(0)) $) reported only for $ N lt.eq 5000 $ where potential energy is computed.
+
+=== Secondary Metrics
+
+- *Linear momentum magnitude* #math.equation($ ||P(t)|| = ||sum_i m_i v_i || $) double precision), expected to remain near zero for symmetric initial conditions.
+- *Qualitative morphology (disk runs)*: persistence and evolution of large-scale structure, reported descriptively rather than as a ground-truth numerical metric.
+
+=== Parameter sweeps (ablation-style sensitivity analysis)
+
+To characterize accuracy–performance trade-offs and stability regimes, controlled sweeps are performed via CLI:
+
+
 
