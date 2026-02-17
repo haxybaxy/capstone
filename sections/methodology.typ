@@ -175,3 +175,43 @@ This design yields two methodological advantages:
 - Backends: `WGPU` (wgpu-native), `DAWN` (Dawn), `EMSCRIPTEN` (browser build with `-sASYNCIFY`, `-sALLOW_MEMORY_GROWTH=1`, `-sUSE_GLFW=3`).
 - Deterministic PRNG: `std::mt19937` seeded by `--seed` (default 42).
 
+== WebGPU Compute Methodology
+
+=== GPU Data Layout
+Simulation state is stored in WebGPU storage buffers:
+- `positions: array<vec4f>` - $(x,y,z,m)$
+- `velocities: array<vec4f>` - $(v_x,v_y,v_z,0)$
+- `accelerations: array<vec4f>` - $(a_x,a_y,a_z,0)$
+- `bvhNodes: array<BVHNode>` - GPU-built LBVH nodes (force traversal)
+- `octreeBuffer: array<Node>` - flattened CPU octree nodes (fallback only)
+- `paramsBuffer: Params` - uniform parameters shared between C++ and WGSL (layout-matched)
+
+The BVH uses a binary representation with $2N-1$ nodes: internal nodes indexed $0 ... N-2$, leaves indexed $N-1 ... 2N-2$. Each BVH node stores center of mass and a tight AABB. The CPU octree node layout uses explicit child fields `c0..c7` to avoid dynamic indexing limitations in WGSL implementations.
+
+In-place updates are used: there is no double buffering of positions/velocities/accelerations. Correct ordering between compute passes relies on WebGPU’s implicit storage-buffer synchronization between passes within a single command buffer submission. Bind groups are recreated each frame.
+
+=== Compute Shaders
+
+The implementation comprises 12 WGSL compute shaders:
+
+- Integration and force: direct summation (baseline), octree traversal (fallback), BVH traversal (primary), plus kick/drift and Euler integration shaders.
+
+- LBVH construction (7 passes): two-pass bounding box reduction, Morton code generation, bitonic sort (multiple sub-passes), Karras (2012) topology construction, leaf initialization, and bottom-up aggregation via atomic counters.
+
+Workgroup sizes are fixed per kernel (e.g., 64 for force evaluation, 256 for integration and tree building) and are reported as part of the implementation configuration.
+
+=== Per-timestep execution sequence (GPU-primary leapfrog)
+
+Each timestep is recorded into a single command encoder and submitted as one command buffer:
+1. Half-kick: $v arrow.l v + (a Delta t)/ 2$
+2. Drift: $r arrow.l r + (v Delta r)$
+3. LBVH build (7 passes): global AABB $arrow.r$ Morton codes $arrow.r$ bitonic sort $arrow.r$ Karras build $arrow.r$ leaf init $arrow.r$ bottom-up aggregation
+4. BVH force evaluation: iterative traversal with fixed-depth explicit stack (depth 64; sufficient for all tested $N$)
+5. Half-kick:  $v arrow.l v + (a Delta t)/ 2$
+6. Diagnostics readback (periodic): stage-map-readback $arrow.r$ CPU double-precision diagnostics
+
+=== GPU traversal (iterative, no recursion)
+Tree traversal is implemented iteratively in the BVH force shader. One GPU thread is assigned per particle. The thread maintains an explicit stack of node indices, beginning from the root. A node is either accepted (leaf or opening-criterion satisfied) and accumulated via the monopole approximation, or expanded by pushing its children. Fast inverse square root (`inverseSqrt`) is used for inverse-distance evaluation. A self-interaction guard avoids adding contributions for degenerate near-zero distances.
+
+This approach preserves the Barnes–Hut approximation structure while accommodating GPU execution constraints and limiting branch divergence where possible @fastnbody @cudabarnes @maximizeparallel .
+
