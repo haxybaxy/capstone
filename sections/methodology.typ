@@ -63,17 +63,24 @@ with isotropic velocity directions.
 - *Limitations*: does not emphasize disk morphology (spirals/bars)
 
 === Scenario C -- Rotating exponential disk (galaxy-like morphology test)
-- *Scope*: $N$ in $[10^4, 10^5]$
-- *Purpose*: evaluates long-term evolution and visually interpretable galactic dynamics (e.g., spiral-like patterns)
-- *Setup*: radii drawn from an exponential distribution (rate 0.08, clamped to 50), uniform azimuthal angle, vertical height from $N(0, 0.3)$ scaled by $1/(1 + r * 0.5)$. Masses are uniform in $[0.5, 2.0]$. Circular orbit velocities computed as $v = sqrt(M_("enclosed") / r)$  0.5 for $r$ > 0.1, with tangential direction.
-- *Key variables*: disk scale length, thickness, velocity dispersion, $theta$, $d t$
+- *Scope*: $N in [10^4, 10^5]$
+- *Purpose*: evaluates long-term evolution and visually interpretable galactic dynamics
+- *Setup*: radii drawn from an exponential distribution (rate 0.08) and  clamped to 50, uniform azimuth. Vertical height is drawn from $N(0, 0.3)$ scaled by $1/(1 + 0.5r)$. Masses are uniform in $[0.5, 2.0]$. Circular velocities are assigned with an approximate enclosed-mass estimate, using (for $r>0.1$)
+#math.equation(
+$
+  v = 0.5 sqrt(frac(M_"enclosed",r))
+$
+)
+with tangential direction.
+- *Key variables*: disk scale length, thickness, velocity dispersion, $theta$, $Delta t$
 - *Limitations*: simplified dynamical setup (not a full multi-component Milky Way model); enclosed-mass estimate is approximate.
 
-The project provides the exact generator code plus seed (default seed = 42) to reproduce any run. All initial-condition generation uses `std::mt19937` seeded by the user-specified `--seed` parameter.
+=== Sampling and robustness across seeds
+Because these scenarios are stochastic, robustness is assessed by repeating runs with different seeds (`--seed 1`, `--seed 2`, …) and comparing diagnostics and timing. Runs are considered valid if they complete without NaNs/overflow and produce consistent parameter logs. Deliberately unstable settings (e.g., excessively large $Delta t$) are retained as documented failures for robustness reporting rather than silently excluded.
 
-#set heading(numbering: "1.1")
+== Physical model and state representation
 
-=== Core preprocessing and transformations
+=== Softened gravitational acceleration
 
 These transformations are applied every timestep (or during initialization) and are justified by GPU efficiency and the Barnes-Hut method.
 
