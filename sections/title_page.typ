@@ -13,7 +13,7 @@
 #image("../graphics/SST.png", width: 40%)
 #v(1.5cm)
 
-#text(size: 24pt, weight: "bold")[Heirarchical N-Body Simulation of Galactic Dynamics in WebGPU]
+#text(size: 24pt, weight: "bold")[Hierarchical N-Body Simulation of Galactic Dynamics in WebGPU]
 #v(0.5cm)
 
 #text(size: 18pt, style: "italic")[Enabling Scalable and Interactive Physics Simulations on Modern Web Platforms]
