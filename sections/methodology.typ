@@ -53,30 +53,29 @@ The project provides the exact generator code plus seed (default seed = 42) to r
 
 These transformations are applied every timestep (or during initialization) and are justified by GPU efficiency and the Barnes-Hut method.
 
-*Bounding-box computation for tree construction*: the global axis-aligned bounding box (AABB) is computed each step. On the GPU path, this is performed via a two-pass parallel reduction (workgroup-level reduction followed by a single-workgroup final reduction). On the CPU mirror path, a sequential iteration over all particle positions determines the AABB, and the octree root cell is centered on this box with a half-width equal to half the maximum extent (plus a small padding of 1.0 unit).
+- *Bounding-box computation for tree construction*: the global axis-aligned bounding box (AABB) is computed each step as part of the tree build. On the GPU tree path, this is performed entirely on-device via a two-pass parallel reduction (workgroup-level reduction followed by a single-workgroup final reduction); no CPU AABB is computed per step. On the CPU tree fallback paths (Euler integrator, CPU-tree leapfrog), a sequential iteration over all CPU mirror particle positions determines the AABB, and the octree root cell is centered on this box with a half-width equal to half the maximum extent (plus a small padding of 1.0 unit).
+- *Justification*: the GPU-computed AABB feeds directly into Morton code generation (normalizing positions into a [0,1023]^3 grid), avoiding a CPU→GPU upload step. The CPU AABB computation is used only by the CPU tree fallback paths for octree construction.
 
- *Justification*: the GPU-computed AABB feeds directly into Morton code generation (normalizing positions into a [0,1023]^3 grid), avoiding a CPU→GPU upload step. The CPU AABB serves the mirror octree construction.
+- *Gravitational softening (epsilon)*: the force law is modified to avoid singularities and large accelerations at very small separations. The softened potential replaces $|r|^2$ with $|r|^2 + epsilon^2$.
 
-*Gravitational softening (epsilon)*: the force law is modified to avoid singularities and large accelerations at very small separations. The softened potential replaces $|r|^2 "with" |r|^2 + epsilon^2$
+-  *Justification*: improves stability and better matches collisionless assumptions in galactic dynamics.
 
-*Justification*: improves stability and better matches collisionless assumptions in galactic dynamics.
+- *Precision management*: the simulation uses 32-bit floating point on the GPU. State is maintained in natural (dimensionless) units with G = 1. Diagnostics (energy, momentum) are computed in 64-bit double precision on the CPU to reduce accumulation errors.
 
-*Precision management*: the simulation uses 32-bit floating point on the GPU. State is maintained in natural (dimensionless) units with $G = 1$. Diagnostics (energy, momentum) are computed in 64-bit double precision on the CPU to reduce accumulation errors.
-
-*Justification*: 32-bit GPU computation maximizes throughput; 64-bit CPU diagnostics provide more reliable conservation metrics.
+- *Justification*: 32-bit GPU computation maximizes throughput; 64-bit CPU diagnostics provide more reliable conservation metrics.
 
 === Derived metrics
 
 These are computed on the CPU from the mirror arrays for evaluation and do not affect dynamics:
+.
+- Total kinetic energy: K = sum(0.5 * m_i * |v_i|^2) (double precision)
+- Total potential energy: $U = -sum_{i<j} m_i * m_j / sqrt(|r_i - r_j|^2 + epsilon^2)$ (*computed only when $N <= 5000$* due to O(N^2) cost; for larger N, potential energy is not tracked)
+- Total energy: $E = K + U$
+- Energy drift: $Delta_E(t) = |E(t) - E(0)| / |E(0)|$
+- Linear momentum: $P = sum(m_i * v_i)$ (3D vector, double precision) and its magnitude $|P|$
+- Runtime per pass: tree build, force computation, and integration timings via `std::chrono::high_resolution_clock`
 
-- *Total kinetic energy:* $K = sum(0.5 * m_i * |v_i|^2)$ (double precision)
-- *Total potential energy*: $U = -sum_{i<j} m_i * m_j / sqrt(|r_i - r_j|^2 + epsilon^2)$ (*computed only when N <= 5000* due to O(N^2) cost; for larger N, potential energy is not tracked)
-- *Total energy*: $E = K + U$
-- *Energy drift*: $delta_E(t) = |E(t) - E(0)| / |E(0)|$
-- *Linear momentum*: $P = sum(m_i * v_i)$ (3D vector, double precision) and its magnitude $|P|$
-- *Runtime per pass*: tree build, force computation, and integration timings via `std::chrono::high_resolution_clock`
-
-=== Simulation 
+=== Simulation
 ```
 Config (CLI args: seed, N, dt, theta, epsilon, steps, scenario, integrator)
         |
@@ -84,56 +83,63 @@ Config (CLI args: seed, N, dt, theta, epsilon, steps, scenario, integrator)
 Initial condition generator  --->  CPU arrays (positions, velocities) + GPU buffers
         |
         v
-Compute initial forces (tree build + CPU & GPU force evaluation)
+Compute initial forces (GPU LBVH build + BVH force evaluation)
         |
         v
-For each timestep (KDK leapfrog):
-  (1) Half-kick:  CPU loop + GPU kick shader         v += a * dt/2
-  (2) Drift:      CPU loop + GPU drift shader         x += v * dt
-  (3) Tree build:
-      GPU: LBVH pipeline (bbox → Morton → sort → Karras → leafInit → aggregate)
-      CPU: mirror octree build (for diagnostics)
-  (4) Force:      CPU Barnes-Hut + GPU BVH force      a = tree traversal
-  (5) Half-kick:  CPU loop + GPU kick shader          v += a * dt/2
-  (6) Optional: diagnostics (CPU) + render (GPU)
+For each timestep (KDK leapfrog — GPU only):
+  (1) Half-kick:  GPU kick shader                     v += a * dt/2
+  (2) Drift:      GPU drift shader                    x += v * dt
+  (3) Tree build: GPU LBVH pipeline (bbox → Morton → sort → Karras → leafInit → aggregate)
+  (4) Force:      GPU BVH force shader                a = tree traversal
+  (5) Half-kick:  GPU kick shader                     v += a * dt/2
+  (6) Periodic:   GPU readback via staging buffers → CPU diagnostics
+  (7) Optional:   render (GPU)
         |
         v
 Logs: timing breakdown, energy/momentum (CSV export via --export)
 ```
 
 == Physical model and governing equations
+
 Each particle represents a mass element (star/dark matter tracer) evolving under self-gravity. The acceleration of particle i is:
 
 $a_i = G * sum_{j != i} m_j * (r_j - r_i) / (|r_j - r_i|^2 + epsilon^2)^(3/2)$
 
-where G is the gravitational constant (set to 1 in dimensionless units), and epsilon is the softening length (default: 0.5).
+where $G$ is the gravitational constant (set to 1 in dimensionless units), and epsilon is the softening length default: 0.5).
 
-*Mass storage*: each particle's mass is packed into the w-component of its position vector (vec4: x, y, z, mass), avoiding a separate mass buffer and reducing memory bandwidth.
+*Mass storage*: each particle's mass is packed into the w-component of its position vector (`vec4: x, y, z, mass`), avoiding a separate mass buffer and reducing memory bandwidth.
 
 *Boundary conditions*: an isolated (open) system is assumed. No periodic boundary conditions are applied, consistent with an isolated-galaxy demonstration.
 
 == Numerical Integration
 
-To avoid the instability and energy drift typical of forward Euler in gravitational systems, the simulation uses a second-order symplectic leapfrog scheme (kick-drift-kick), with fixed timestep $d t$ (default: 0.001):
+To avoid the instability and energy drift typical of forward Euler in gravitational systems, the simulation uses a *second-order symplectic leapfrog* scheme (kick-drift-kick), with fixed timestep dt (default: 0.001):
 
 1. *Half-kick*:
    $v_i^{n+1/2} = v_i^n + (d t/2) * a_i^n$
 2. *Drift*:
    $r_i^{n+1} = r_i^n + d t * v_i^{n+1/2}$
-3. *Recompute acceleration* $a_i^{n+1}$ from updated positions. On the GPU, this involves building the LBVH via 7 compute passes (see Section 2.8.5) followed by BVH force traversal. On the CPU mirror, the octree is rebuilt and traversed for diagnostic cross-validation.
-
+3. *Recompute acceleration* $a_i^{n+1}$ from updated positions. On the GPU, this involves building the LBVH via 7 compute passes (see Section 2.8.5) followed by BVH force traversal.
 4. *Half-kick*:
    $v_i^{n+1} = v_i^{n+1/2} + (d t/2) * a_i^{n+1}$
+Only the GPU executes physics every step; diagnostics use on-demand readback via staging buffers at configurable intervals.
+*Justification:* symplectic methods better preserve Hamiltonian structure and long-term qualitative behavior in collisionless galactic simulations @springel_2005.
 
-Each phase executes on *both CPU and GPU in parallel*: the CPU performs scalar loops over the mirror arrays while the GPU dispatches the corresponding compute shader. This dual-track design is detailed in Section 2.7.
+== Hierarchical force evaluation (Barnes-Hut family)
 
-*Euler fallback*: a forward Euler integrator is preserved as a `--integrator euler` option. Its step sequence is: octree build -> force evaluation -> single integration pass $(v += a * d t; x += v * d t)$. This serves as a baseline to demonstrate the stability advantage of leapfrog.
+=== Node approximation
 
-Symplectic methods better preserve Hamiltonian structure and long-term qualitative behavior in collisionless galactic simulations. @springel_2005 
+Particles are grouped into a spatial hierarchy. For a node with total mass M and center of mass R, the contribution to particle i is approximated as:
 
+$a_{i,"node"} = G * M * (R - r_i) / (|R - r_i|^2 + epsilon^2)^(3/2)$
 
-=
+This is a monopole approximation (center-of-mass only), matching the classic Barnes-Hut approach. The approximation applies identically to both the 8-way octree (CPU path) and the binary BVH (GPU path); only the tree topology and opening criterion differ.
 
+=== Opening criterion
 
+A node is accepted (treated as a single body) if it is sufficiently far from the target particle. The criterion varies by tree type:
 
+*GPU BVH*: using the maximum extent of the node's axis-aligned bounding box (AABB) and squared distance $d^2 = |r_i - R|^2$:
+
+$"maxExtent"^2 / d^2 < theta^2$
 
