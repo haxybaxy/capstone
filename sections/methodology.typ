@@ -65,7 +65,7 @@ These transformations are applied every timestep (or during initialization) and 
 
 *Justification*: 32-bit GPU computation maximizes throughput; 64-bit CPU diagnostics provide more reliable conservation metrics.
 
-=== Derived metrics (analysis features)
+=== Derived metrics
 
 These are computed on the CPU from the mirror arrays for evaluation and do not affect dynamics:
 
