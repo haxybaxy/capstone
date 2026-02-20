@@ -47,6 +47,32 @@ To satisfy traceability and enable controlled evaluation, we define three standa
 
 The project provides the exact generator code plus seed (default seed = 42) to reproduce any run. All initial-condition generation uses `std::mt19937` seeded by the user-specified `--seed` parameter.
 
+#set heading(numbering: "1.1")
 
+=== Core preprocessing and transformations
 
+These transformations are applied every timestep (or during initialization) and are justified by GPU efficiency and the Barnes-Hut method.
+
+*Bounding-box computation for tree construction*: the global axis-aligned bounding box (AABB) is computed each step. On the GPU path, this is performed via a two-pass parallel reduction (workgroup-level reduction followed by a single-workgroup final reduction). On the CPU mirror path, a sequential iteration over all particle positions determines the AABB, and the octree root cell is centered on this box with a half-width equal to half the maximum extent (plus a small padding of 1.0 unit).
+
+ *Justification*: the GPU-computed AABB feeds directly into Morton code generation (normalizing positions into a [0,1023]^3 grid), avoiding a CPU→GPU upload step. The CPU AABB serves the mirror octree construction.
+
+*Gravitational softening (epsilon)*: the force law is modified to avoid singularities and large accelerations at very small separations. The softened potential replaces $|r|^2 "with" |r|^2 + epsilon^2$
+
+*Justification*: improves stability and better matches collisionless assumptions in galactic dynamics.
+
+*Precision management*: the simulation uses 32-bit floating point on the GPU. State is maintained in natural (dimensionless) units with $G = 1$. Diagnostics (energy, momentum) are computed in 64-bit double precision on the CPU to reduce accumulation errors.
+
+*Justification*: 32-bit GPU computation maximizes throughput; 64-bit CPU diagnostics provide more reliable conservation metrics.
+
+=== Derived metrics (analysis features)
+
+These are computed on the CPU from the mirror arrays for evaluation and do not affect dynamics:
+
+- *Total kinetic energy:* $K = sum(0.5 * m_i * |v_i|^2)$ (double precision)
+- *Total potential energy*: $U = -sum_{i<j} m_i * m_j / sqrt(|r_i - r_j|^2 + epsilon^2)$ (*computed only when N <= 5000* due to O(N^2) cost; for larger N, potential energy is not tracked)
+- *Total energy*: $E = K + U$
+- *Energy drift*: $delta_E(t) = |E(t) - E(0)| / |E(0)|$
+- *Linear momentum*: $P = sum(m_i * v_i)$ (3D vector, double precision) and its magnitude $|P|$
+- *Runtime per pass*: tree build, force computation, and integration timings via `std::chrono::high_resolution_clock`
 
