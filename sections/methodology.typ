@@ -132,7 +132,38 @@ $
 == Hierarchical force evaluation
 === Monopole approximation
 Hierarchical evaluation approximates distant particle groups by a single monopole at the node center of mass. For a node with total mass $M$ and center of mass $R$,
-m
+#math.equation(
+$
+  a_(i,"node") = G M frac(R-r_i,(||R-r_i||^2+epsilon^2)^(3/2))
+$
+),
+This monopole approximation is used consistently across both tree topologies implemented here: a binary BVH (GPU primary) and an 8-way octree (CPU fallback)  Only the tree representation and opening criterion differ.
+=== Opening Criteria
+An internal node is accepted if it is sufficiently small relative to its distance from the target particle.
+- GPU BVH (tight AABB with maximum extent $"maxExtent"$): #math.equation(
+$
+  frac("maxExtent"^2,d^2) lt theta^2
+$) where #math.equation(
+$
+  "maxExtent" = max(Delta x, Delta y, Delta z)
+$
+) derived from node AABB bounds. This criterion reflects non-cubic node shapes in a BVH more accurately than a uniform half-width.
+
+- CPU octree (half-width $h$, distance squared $d^2 = ||r_i - R||^2$): #math.equation(
+$
+  frac(h^2,d^2) lt theta^2
+$
+) This squared form avoids a square root.
+
+Default $theta=0.75$ is used as a practical balance between accuracy and performance.
+
+== Software architecture and execution modes
+=== GPU-primary stepping with on-demand diagnostics
+The primary execution mode is GPU-primary: all physics operations (integration, tree construction, and force evaluation) are performed on the GPU each step. Diagnostic quantities are computed on the CPU only at configurable intervals through staging-buffer readback of positions and velocities. Diagnostic frequency is set to every 60 frames in interactive mode, and every step or every 50 steps in headless mode depending on $N$.
+
+To support cross-checking and fallback behavior, CPU mirror arrays (`cpuPositions_`, `cpuVelocities_`, `cpuAccelerations_`) are retained and used by non-primary modes (Euler and CPU-tree leapfrog), where scalar CPU loops and a CPU octree are executed in parallel with the GPU path.
+
+
 
 
 
