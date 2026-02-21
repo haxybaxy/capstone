@@ -2,33 +2,33 @@
 = Methodology
 #set heading(numbering: "1.1")
 == Research Design and Objectives
-This project follows a computational-methods research design: we implement and evaluate a GPU-accelerated gravitational N-body solver for galactic dynamics, built with C++20 and the WebGPU API. The application compiles to both native desktop (via wgpu-native or Dawn backends) and browser (via Emscripten), enabling interactive visualization and headless batch evaluation from the same codebase.
+This work adopts a computational-methods design in which a gravitational $N$-body solver is implemented and evaluated with a focus on reproducibility, long-term numerical stability, and computational scalibility beyond the $O(N^2)$ cost of direct summation. The solver is implemented in C++20 using the WebGPU C API and is built from a single codebase targetting both:
+- Native desktop execution, using WebGPU backends such as wgpu-native and Dawn.
+- Browser execution, compiled via Emscripten.
+This dual-target approach enables interactive visualizaiton as well as headless batch runs, allowing performance and numerical behavior to be evaluated under comparable conditions across platforms. 
 
-The methodology is structured to ensure the implementation is (i) reproducible, (ii) numerically stable over long integrations, and (iii) computationally scalable beyond the quadratic cost of direct summation.
+The methodological choices follwo directly from the literature foundations on hierarchical $N$-body simulation and GPU parallelism:
+- *Force Model*: Newtonian gravity with Plummer-type softening to avoid the $1/r^2$ singularity and reduce spurious two-body relaxation in collisionless regimes.
+- *Acceleration strategy*: a Barnes-Hut style hierarchical approximation that reduces force-evaluation from $O(N^2)$ to approximately $O(N log N)$ @barneshut. In the primary path, both tree construction and force evaluation are executed on the GPU: a Linear Bounding Volume Hierarchy (LBVH) is constructed fully on-device using the parallel method of @maximizeparallel, removing the per-step CPU to GPU tree upload bottleneck.
+- *Time Integration*: a second order symplectic leapfrog integrator (kick–drift–kick; also known as velocity Verlet in an equivalent form) selected for improved long-term energy behavior relative to forward Euler in gravitational systems @springel_2005.
+- *Compute platform*: WebGPU compute shaders for general-purpose parallel kernels, enabling both native and browser deployment through the same low-level API surface.
 
-
-The central methodological choices follow directly from the Literature Review:
-- *Force Model*: Newtonian gravity with softening to avoid singularities and reduce two-body relaxation (collisionless approximation).
-- *Acceleration strategy*: a hierarchical tree method in the Barnes-Hut family to reduce per-step complexity from $O(N^2)$ to approximately $O(N log N)$. @barneshut
-- *Time Integration*: a symplectic scheme (leapfrog / velocity Verlet) to improve long-term energy behavior compared to Euler.
-- *Compute platform*: WebGPU compute shaders to enable general-purpose parallel computation on the GPU. The WebGPU C API is used throughout (raw `WGPUDevice`, `WGPUBuffer`, etc.), supporting native execution and browser deployment from a single build system.
-
-The research questions operationalized by this methodology are:
+The evaluation is structured around three operational research questions:
 
 1. *Scalability*: How does runtime per timestep scale with $N$ for a WebGPU Barnes-Hut implementation compared to a direct $O(N^2)$ baseline at small $N$?
-2. *Numerical quality*: For fixed $N$, how do timestep size $(d t)$ and opening angle $(theta)$ affect $(a)$ force accuracy relative to a direct reference, and $(b)$ long-term conservation metrics (energy drift, momentum drift)?
-3. *Platform feasibility*: What particle counts and timestep rates are practical within WebGPU constraints (32-bit precision, memory limits, scheduling, device variability)?
+2. *Numerical quality*: For fixed $N$, how do timestep size $Delta t$ and opening angle $theta$ affect (a) long-term conservation behavior (energy and momentum drift where measurable) and (b) stability under long integrations?
+3. *Platform feasibility*: what particle counts and timestep rates are practical under WebGPU constraints (32-bit GPU arithmetic, buffer/memory limits, scheduling overhead, and device variability)?
 
-== Simulation data generation and benchmark scenarios
-=== Initial-condition scenarios
+== Initial conditions and benchmark scenarios
+No external astronomical datasets are used. All experiments are generated from synthetic initial conditions and produce derived outputs (trajectories, diagnostic scalars, and timing logs). This design eliminates licensing and privacy concerns and enables controlled, repeatable comparisons across parameter sweeps.
 
-To satisfy traceability and enable controlled evaluation, we define three standardized benchmark scenarios. Each scenario is fully described by a set of command-line parameters: scenario type, seed, $N$, $d t$, $theta$, softening, and step count.
-#set heading(numbering: none)
-==== Scenario A -- Two-body orbit (sanity check)
+Each experiment is fully specified by command-line parameters: scenario type, seed, $N$, $Delta t$, $theta$, softening $epsilon$, and step count. Initial condition generation uses `std::mt19937` seeded by `--seed` (default seed = 42), ensuring deterministic reproduction of particle distributions and velocities.
 
-- *Scope*: N = 2 (enforced regardless of the `--N` parameter)
-- *Purpose*: verifies integrator correctness (closed orbit behavior; stability vs dt)
-- *Setup*: two equal-mass particles (m = 1000 each) separated by 10 units along the X-axis, with tangential velocities along the Z-axis computed for a softened circular orbit: $v = sqrt(G * m * d^2 / (2 * (d^2 + epsilon^2)^(3/2)))$
+=== Scenario A -- Two-body orbit (sanity check)
+
+- *Scope*: $N = 2$ (enforced regardless of the `--N` parameter)
+- *Purpose*: verifies integrator correctness and sensitivity to $Delta t$ and $epsilon$.
+- *Setup*: two equal-mass particles ($m = 1000$ each) separated by $d = 10$ units along the X-axis, with tangential velocities along the $z$-axis computed for a softened circular orbit: $v = sqrt(G * m * d^2 / (2 * (d^2 + epsilon^2)^(3/2)))$
 
 - *Key variables*: $d t$, softening
 - *Limitations*: not representative of large-N hierarchical behavior
@@ -137,9 +137,11 @@ This is a monopole approximation (center-of-mass only), matching the classic Bar
 
 === Opening criterion
 
-A node is accepted (treated as a single body) if it is sufficiently far from the target particle. The criterion varies by tree type:
+A node is accepted (treated as a single body) if it is sufficiently far from the target particle.
 
 *GPU BVH*: using the maximum extent of the node's axis-aligned bounding box (AABB) and squared distance $d^2 = |r_i - R|^2$:
+where maxExtent = max(AABB_max.x - AABB_min.x, AABB_max.y - AABB_min.y, AABB_max.z - AABB_min.z). This replaces the octree half-width with the largest dimension of the node's tight AABB, providing a more accurate size estimate for non-cubic bounding regions in the binary tree.
 
-$"maxExtent"^2 / d^2 < theta^2$
+The default opening angle theta = 0.75 balances accuracy and performance for both tree types.
 
+== Architecture
