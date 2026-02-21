@@ -28,9 +28,13 @@ Each experiment is fully specified by command-line parameters: scenario type, se
 
 - *Scope*: $N = 2$ (enforced regardless of the `--N` parameter)
 - *Purpose*: verifies integrator correctness and sensitivity to $Delta t$ and $epsilon$.
-- *Setup*: two equal-mass particles ($m = 1000$ each) separated by $d = 10$ units along the X-axis, with tangential velocities along the $z$-axis computed for a softened circular orbit: $v = sqrt(G * m * d^2 / (2 * (d^2 + epsilon^2)^(3/2)))$
-
-- *Key variables*: $d t$, softening
+- *Setup*: two equal-mass particles ($m = 1000$ each) separated by $d = 10$ units along the X-axis, with tangential velocities along the $z$-axis computed for a softened circular orbit: 
+#math.equation(
+$
+  v = sqrt(frac(G m d^2,2 (d^2 + epsilon^2)^(3/2)))
+$
+)
+- *Key variables*: $Delta t$, $epsilon$ 
 - *Limitations*: not representative of large-N hierarchical behavior
 ==== Scenario B -- Plummer sphere (spherical equilibrium test)
 - *Scope*: $N$ in $[10^3, 10^5]$ (depending on hardware)
