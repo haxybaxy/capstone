@@ -282,6 +282,19 @@ Interactive runs couple stepping to the render loop; headless mode prioritizes t
 == Data ethics, security, and integrity
 No personal or sensitive data are collected. All computation runs locally (native) or within the user’s browser sandbox (Emscripten). Diagnostic logs and trajectories are exported only when explicitly requested (`--export`). Each CSV export is linked to the complete set of runtime parameters (scenario, $N$, $Delta t$, $theta$, $epsilon$, seed, integrator, steps). The primary practical risk is high GPU load; mitigation is provided through adjustable $N$ and configurable step limits.
 
+== Reproduciblity and traceability
+
+Reproducibility is ensured through:
+- deterministic initial condition generation (`std::mt19937`, seed recorded; default 42),
+- complete CLI parameter logging at startup (via spdlog),
+- pinned third-party dependency versions through CMake FetchContent,
+- logging of GPU adapter name and selected WebGPU backend,
+- CSV export containing per-step diagnostics and timing:
+  `step, time, kinetic_energy, potential_energy (if N<=5000), total_energy, energy_drift, px, py, pz, tree_build_ms, force_ms, integrate_ms`,
+- dual build targets (native + browser) produced from the same source, enabling cross-environment comparison.
+
+
+
 
 
 
