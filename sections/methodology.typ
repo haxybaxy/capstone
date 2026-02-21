@@ -250,5 +250,39 @@ Two baselines are used:
 
 To characterize accuracy–performance trade-offs and stability regimes, controlled sweeps are performed via CLI:
 
+- $theta in {0.3,0.5,0.7,1.0}$
+- $Delta t$ across a stable range (scenario dependent)
+- $epsilon$ across representative values
+- Euler vs leapfrog
+- CPU octree vs GPU LBVH construction paths
+Results are compared using exported CSV logs.
+
+
+=== Error analysis procedure
+When instability or anomalous drift occurs, runs are inspected for correlations with: dense regions vs diffuse regions, large $theta$, large $Delta t$, small $epsilon$, and platform/backend differences. Failures (NaNs, overflow, extreme velocities) are detected explicitly and logged.
+
+== Validation and Robustness
+
+=== Theoretical Grounding
+- Barnes–Hut hierarchical approximation and tunable opening angle $theta$ follow Barnes & Hut (1986).
+- Leapfrog integration is a standard choice for long-horizon gravitational dynamics due to symplectic stability properties @springel_2005
+- The GPU hierarchy construction follows Karras (2012), a widely used parallel LBVH method.
+- GPU traversal methodology follows established considerations for irregular tree algorithms on SIMD-style hardware @cudabarnes @maximizeparallel
+
+=== Empirical validation
+
+- Scenario A (two-body) provides a controlled sanity check for orbit stability and integrator correctness.
+- Deterministic seeds and complete parameter logging allow exact repetition.
+- Fixed step counts (`--steps`) provide consistent comparison across runs; instability events are recorded rather than filtered.
+
+=== Practical constraints
+Interactive runs couple stepping to the render loop; headless mode prioritizes throughput. Particle count is adjustable (2 to 100,000). Potential energy tracking is intentionally limited to $N lt.eq 5000$ to avoid prohibitive overhead; for larger $N$, stability is assessed through kinetic energy and momentum diagnostics plus qualitative behavior.
+
+
+== Data ethics, security, and integrity
+No personal or sensitive data are collected. All computation runs locally (native) or within the user’s browser sandbox (Emscripten). Diagnostic logs and trajectories are exported only when explicitly requested (`--export`). Each CSV export is linked to the complete set of runtime parameters (scenario, $N$, $Delta t$, $theta$, $epsilon$, seed, integrator, steps). The primary practical risk is high GPU load; mitigation is provided through adjustable $N$ and configurable step limits.
+
+
+
 
 
