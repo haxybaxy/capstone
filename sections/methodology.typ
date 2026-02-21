@@ -81,8 +81,60 @@ Because these scenarios are stochastic, robustness is assessed by repeating runs
 == Physical model and state representation
 
 === Softened gravitational acceleration
+Each particle represents a mass element evolving under self-gravity in an isolated (open) domain. Using dimensionless units with 
+$G=1$, the softened acceleration of particle $i$ is
+#math.equation(
+$
+  a_i = G sum_(j eq.not i) m_j frac(r_j - r_i,(||r_j - r_i||^2 + epsilon^2)^(3/2))
+$
+)
+Softening parameter $epsilon$ defaults to 0.5 and is configurable.
 
-These transformations are applied every timestep (or during initialization) and are justified by GPU efficiency and the Barnes-Hut method.
+=== GPU-friendly mass packing
+To reduce memory bandwidth, each particle mass is stored in the w component of its position vector (`vec4: x,y,z,m`), avoiding a dedicated mass buffer.
+
+=== Precision strategy
+GPU kernels operate in 32-bit floating point to maximize throughput and match typical WebGPU availability. Diagnostic quantities (energy and momentum) are computed on the CPU in double precision to reduce accumulation error. This split reflects the practical precision/performance trade-off in WebGPU environments.
+
+== Time Integration
+
+=== Primary integrator: symplectic leapfrog (KDK)
+The primary integration scheme is a fixed-timestep, second-order symplectic leapfrog (kick-drift-kick). With timestep $Delta t$ (default (0.0001) the update is:
+1. Half-kick
+#math.equation(
+$
+  v_i^(n+1/2) =  v_i^(n) + (Delta t)/2 a_i^n
+$
+)
+2. Drift
+#math.equation(
+$
+  r_i^(n+1) =  r_i^(n) + Delta t v_i^(n+1/2)
+$
+)
+3. Recompute acceleration $a_i^(n+1)$ using updated positions
+4. Half kick
+$
+  v_i^(n+1) =  v_i^(n+1/2) + (Delta t)/2 a_i^(n+1)
+$
+
+This choice is motivated by the well-known long-term stability advantages of symplectic schemes in gravitational dynamics @springel_2005, particularly when combined with approximate force evaluation.
+
+=== 2.4.2 Euler integrator (baseline/fallback)
+A forward Euler method is retained as `--integrator euler` to provide a stability baseline. Its update sequence is: tree build $arrow.r$ force evaluation $arrow.r$
+
+#math.equation(
+$
+  v arrow.l v + a Delta t,space r arrow.l r  + v Delta t
+$
+)
+
+== Hierarchical force evaluation
+=== Monopole approximation
+Hierarchical evaluation approximates distant particle groups by a single monopole at the node center of mass. For a node with total mass $M$ and center of mass $R$,
+m
+
+
 
 - *Bounding-box computation for tree construction*: the global axis-aligned bounding box (AABB) is computed each step as part of the tree build. On the GPU tree path, this is performed entirely on-device via a two-pass parallel reduction (workgroup-level reduction followed by a single-workgroup final reduction); no CPU AABB is computed per step. On the CPU tree fallback paths (Euler integrator, CPU-tree leapfrog), a sequential iteration over all CPU mirror particle positions determines the AABB, and the octree root cell is centered on this box with a half-width equal to half the maximum extent (plus a small padding of 1.0 unit).
 - *Justification*: the GPU-computed AABB feeds directly into Morton code generation (normalizing positions into a [0,1023]^3 grid), avoiding a CPU→GPU upload step. The CPU AABB computation is used only by the CPU tree fallback paths for octree construction.
