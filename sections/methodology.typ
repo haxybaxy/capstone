@@ -2,6 +2,7 @@
 = Methodology
 #set heading(numbering: "1.1")
 == Research Design and Objectives
+*NEED TO UPDATE SECTION*
 This work adopts a computational-methods design in which a gravitational $N$-body solver is implemented and evaluated with a focus on reproducibility, long-term numerical stability, and computational scalibility beyond the $O(N^2)$ cost of direct summation. The solver is implemented in C++20 using the WebGPU C API and is built from a single codebase targetting both:
 - Native desktop execution, using WebGPU backends such as wgpu-native and Dawn.
 - Browser execution, compiled via Emscripten.
