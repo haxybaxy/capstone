@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   deploy:
-    uses: zaidalsaheb/papershare/.github/workflows/deploy.yml@main
+    uses: haxybaxy/papershare/.github/workflows/deploy.yml@main
     with:
       pdf-path: main.pdf
       title: "Capstone Paper"
