@@ -10,10 +10,22 @@ permissions:
   id-token: write
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: haxybaxy/papersharer@main
+        with:
+          pdf-path: main.pdf
+          title: "Capstone Paper"
+          github-token: ${{ secrets.PAPERSHARE_TOKEN }}
+
   deploy:
-    uses: haxybaxy/papershare/.github/workflows/deploy.yml@main
-    with:
-      pdf-path: main.pdf
-      title: "Capstone Paper"
-    secrets:
-      VITE_GITHUB_TOKEN: ${{ secrets.PAPERSHARE_TOKEN }}
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
