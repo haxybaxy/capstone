@@ -42,8 +42,6 @@ A comparative assessment of available GPU APIs clarifies the positioning of WebG
   caption: [Comparison of GPU compute APIs against criteria required for hierarchical $N$-body simulation. WebGPU is the only API that combines compute shader support with browser deployability.],
 ) <fig:platform-comparison>
 
-With the computational platform established, the following sections describe the physical model and numerical methods that operate within it.
-
 == Physical Model and State Representation
 
 === Softened gravitational acceleration
@@ -75,8 +73,6 @@ To reduce memory bandwidth on the GPU, each particle's mass is stored in the $w$
 === Precision strategy
 
 GPU kernels operate in 32-bit floating point to maximize throughput and match typical WebGPU device capabilities. Diagnostic quantities (total energy and momentum) are computed on the CPU in double precision to reduce accumulation error in long-running integrations. This split reflects the practical precision-versus-performance trade-off inherent in WebGPU environments, where 64-bit GPU arithmetic is not available @realitycheck.
-
-Given the acceleration field defined above, the system state is advanced in time using the integration scheme described in the following section.
 
 == Time Integration
 
@@ -142,8 +138,6 @@ The default opening angle $theta = 0.75$ is used as a practical balance between 
   caption: [Geometry of the opening criterion. A node is approximated as a monopole when its angular size, as measured by extent/$d$, falls below the threshold $theta$. Left: BVH variant using maximum AABB extent. Right: octree variant using cell half-width.],
 ) <fig:opening-criterion>
 
-The dual-topology approach motivates a software architecture with multiple execution paths, described in the following section.
-
 == Software Architecture and Execution Modes
 
 The implementation is written in C++20 for host-side orchestration and physics, with WGSL for compute and rendering shaders, using the WebGPU C API directly without wrapper libraries. The build system uses CMake with FetchContent and pinned dependency versions to ensure deterministic builds. Dependencies fetched automatically include WebGPU-distribution (v0.2.0), GLFW (3.4), glfw3webgpu (v1.2.0), spdlog (v1.16.0), Dear ImGui (v1.90.9), and GLM (1.0.2). Three build backends are supported: `WGPU` (wgpu-native), `DAWN` (Dawn), and `EMSCRIPTEN` (browser build with `-sASYNCIFY`, `-sALLOW_MEMORY_GROWTH=1`, `-sUSE_GLFW=3`).
@@ -204,8 +198,6 @@ The LBVH is built fully on-device in seven conceptual steps. First, a two-pass p
 === CPU octree construction (fallback paths)
 
 The CPU octree is used only by Euler and CPU-tree leapfrog modes. It is built from CPU mirror arrays by computing a bounding box, inserting particles via octant selection, propagating centers of mass bottom-up, and optionally flattening to a GPU-friendly node array when GPU evaluation is used. GPU buffers auto-resize during uploads when needed.
-
-In interactive mode, the GPU-computed particle state is rendered directly from storage buffers, as described in the following section.
 
 == Rendering and Interactive Operation
 
@@ -271,8 +263,6 @@ Because initial conditions are stochastic, robustness is assessed by repeating r
   ],
   caption: [Initial particle distributions for the three benchmark scenarios. (a) Scenario A: two-body orbit. (b) Scenario B: Plummer sphere with $N = 10000$. (c) Scenario C: exponential disk with $N = 50000$.],
 ) <fig:scenarios>
-
-The evaluation protocol systematically exercises these scenarios across the parameter space defined above.
 
 == Evaluation Protocol: Baselines, Metrics, and Parameter Sweeps <sec:evaluation-protocol>
 
