@@ -26,6 +26,17 @@
     margin-top: 0.5em;
     font-style: italic;
   }
+  .save-btn {
+    margin-top: 0.5em;
+    padding: 0.4em 1em;
+    font-size: 0.85em;
+    font-family: inherit;
+    background: #f1f5f9;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .save-btn:hover { background: #e2e8f0; }
   /* SVG text defaults */
   svg text {
     font-family: "Times New Roman", Times, serif;
@@ -131,6 +142,7 @@ Each diagram has a white background for direct paper inclusion.</p>
 </svg>
 <div class="caption">Figure 6: Node opening criterion. (a) BVH uses maximum AABB extent <em>s</em>.
 (b) Traditional octree uses cell half-width <em>h</em>. Both compare <em>s/d</em> (or <em>h/d</em>) against threshold &theta;.</div>
+<button class="save-btn" onclick="savePng(this, 'fig_opening_criterion.png')">Save as PNG</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -210,6 +222,7 @@ Each diagram has a white background for direct paper inclusion.</p>
   <text x="88" y="454" font-size="10" fill="#666">Readback / fallback</text>
 </svg>
 <div class="caption">Figure 7: System architecture. Solid arrows show the GPU-primary data path; dashed arrows indicate periodic staging-buffer readback for CPU-side diagnostics. The rendering pipeline reads directly from GPU storage buffers.</div>
+<button class="save-btn" onclick="savePng(this, 'fig_system_architecture.png')">Save as PNG</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -294,6 +307,7 @@ Each diagram has a white background for direct paper inclusion.</p>
   <text x="370" y="660" font-size="9" fill="#94a3b8">(periodic)</text>
 </svg>
 <div class="caption">Figure 8: Single-timestep pipeline (Leapfrog KDK). The LBVH build phase expands into six GPU compute passes separated by pipeline barriers. The dashed diagnostics readback occurs periodically, not every step.</div>
+<button class="save-btn" onclick="savePng(this, 'fig_timestep_pipeline.png')">Save as PNG</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -371,7 +385,28 @@ Each diagram has a white background for direct paper inclusion.</p>
   <text x="210" y="555" text-anchor="middle" font-size="12" fill="#475569">Ready for Traversal</text>
 </svg>
 <div class="caption">Figure 9: LBVH construction pipeline. Six GPU compute passes build the bounding-volume hierarchy each timestep. Dashed lines indicate pipeline barriers (storage-buffer read-after-write) between passes. Colors group related phases: scene analysis (blue), sorting (amber), topology (green), aggregation (purple).</div>
+<button class="save-btn" onclick="savePng(this, 'fig_lbvh_pipeline.png')">Save as PNG</button>
 </div>
 
+<script>
+function savePng(btn, filename) {
+  var svg = btn.closest('.fig-container').querySelector('svg');
+  var svgData = new XMLSerializer().serializeToString(svg);
+  var scale = 3;
+  var canvas = document.createElement('canvas');
+  canvas.width = svg.width.baseVal.value * scale;
+  canvas.height = svg.height.baseVal.value * scale;
+  var ctx = canvas.getContext('2d');
+  var img = new Image();
+  img.onload = function() {
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    var a = document.createElement('a');
+    a.download = filename;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  };
+  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+}
+</script>
 </body>
 </html>
