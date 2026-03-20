@@ -96,7 +96,7 @@ The rotating disk scenario exhibits similar behaviour. Runtime increases from 1.
 
 === Two-Body Orbit Validation (Scenario A)
 
-The two-body orbit provides the simplest test of integrator correctness. @tab:twobody-drift presents the final energy drift after 50,000 steps for both integrators across the timestep sweep. A notable observation is that the Euler integrator, run on the CPU octree path, exhibits substantially lower energy drift (on the order of $10^(-5)$ to $10^(-6)$) than the leapfrog integrator on the GPU BVH path (drift of order unity). This counterintuitive result is attributable to the different force computation paths rather than the integration scheme: the CPU path computes forces in double precision via the octree, while the GPU BVH path uses 32-bit floating-point arithmetic. At $N = 2$, the BVH tree structure is degenerate (a single internal node with two leaves), and the 32-bit force evaluation accumulates sufficient rounding error over 50,000 steps to produce measurable orbit drift.
+The two-body orbit provides the simplest test of integrator correctness. @tab:twobody-drift presents the final energy drift after 50,000 steps for both integrators across the timestep sweep. The Euler integrator, run on the CPU octree path, exhibits substantially lower energy drift (on the order of $10^(-5)$ to $10^(-6)$) than the leapfrog integrator on the GPU BVH path (drift of order unity). This counterintuitive result is attributable to the different force computation paths rather than the integration scheme: the CPU path computes forces in double precision via the octree, while the GPU BVH path uses 32-bit floating-point arithmetic. At $N = 2$, the BVH tree structure is degenerate (a single internal node with two leaves), and the 32-bit force evaluation accumulates sufficient rounding error over 50,000 steps to produce measurable orbit drift.
 
 #figure(
   table(
@@ -112,7 +112,7 @@ The two-body orbit provides the simplest test of integrator correctness. @tab:tw
   caption: [Final energy drift $Delta E / |E(0)|$ after 50,000 steps for the two-body orbit (Scenario A). The difference between integrators is dominated by the force computation precision: GPU BVH (32-bit) versus CPU octree (64-bit).],
 ) <tab:twobody-drift>
 
-This result highlights that for very small $N$, the 32-bit precision of GPU computation is the binding constraint on numerical quality, not the integration scheme. The two-body scenario remains useful as a code-path sanity check (both paths complete without NaN or divergence), but quantitative energy-conservation comparisons between integrators require the same force computation path.
+For very small $N$, the 32-bit precision of GPU computation is the binding constraint on numerical quality, not the integration scheme. The two-body scenario remains useful as a code-path sanity check (both paths complete without NaN or divergence), but quantitative energy-conservation comparisons between integrators require the same force computation path.
 
 #figure(
   rect(width: 80%, height: 6cm, stroke: 0.5pt + gray, inset: 1em)[
@@ -189,9 +189,9 @@ For the Plummer sphere at $N = 5000$, the total momentum magnitude $||P(t)|| = |
   caption: [Native vs browser wall-clock ms/step and final energy drift (Plummer sphere, GPU LBVH, leapfrog, $theta = 0.75$). Native timing is the mean of tree build, force, and integration components after warmup. Browser timing is wall-clock from console-log timestamps, which includes event-loop scheduling overhead.],
 ) <tab:web-native>
 
-The constant browser wall-clock time indicates that per-step duration is dominated by a fixed overhead rather than GPU compute. Subtracting the native GPU time from the browser wall-clock yields a constant residual of approximately 4.3 ms/step across all $N$ values. This fixed cost is attributable to the Emscripten asyncify mechanism, which yields control to the browser event loop between timesteps via `emscripten_sleep(0)`, incurring JavaScript-to-WebAssembly context switching and event-loop scheduling latency. Crucially, this overhead is additive and constant: it does not grow with $N$, meaning the sub-linear scaling behaviour observed in native execution is preserved in the browser.
+The constant browser wall-clock time indicates that per-step duration is dominated by a fixed overhead rather than GPU compute. Subtracting the native GPU time from the browser wall-clock yields a constant residual of approximately 4.3 ms/step across all $N$ values. This fixed cost is attributable to the Emscripten asyncify mechanism, which yields control to the browser event loop between timesteps via `emscripten_sleep(0)`, incurring JavaScript-to-WebAssembly context switching and event-loop scheduling latency. This overhead is additive and constant: it does not grow with $N$, meaning the sub-linear scaling behaviour observed in native execution is preserved in the browser.
 
-Energy drift values are nearly identical between the two platforms at each $N$, with relative differences below 1% for $N gt.eq 10000$ and below 2% at smaller $N$. The small discrepancies at lower $N$ are attributable to differences in floating-point intermediate rounding between the native and browser WebGPU driver paths, but both platforms produce the same qualitative energy evolution and the same order-of-magnitude drift at every $N$. This confirms that the browser WebGPU implementation executes the same GPU compute shaders with equivalent numerical fidelity.
+Energy drift values are nearly identical between the two platforms at each $N$, with relative differences below 1% for $N gt.eq 10000$ and below 2% at smaller $N$. The small discrepancies at lower $N$ are attributable to differences in floating-point intermediate rounding between the native and browser WebGPU driver paths, but both platforms produce the same qualitative energy evolution and the same order-of-magnitude drift at every $N$. Both platforms therefore produce matching numerical output from the same GPU shaders.
 
 #figure(
   rect(width: 80%, height: 7cm, stroke: 0.5pt + gray, inset: 1em)[
@@ -212,10 +212,10 @@ Three independent Plummer sphere realisations ($N = 5000$, seeds 42, 123, 256) s
 
 == Integrated Assessment
 
-The results collectively address the three research questions:
+The results address the three research questions:
 
 1. *Scalability (RQ1)*: The GPU LBVH Barnes–Hut implementation scales sub-linearly with $N$, achieving only a 3.9$times$ increase in step time over a 1000$times$ increase in particle count. The tree-based approach outperforms direct $O(N^2)$ summation for $N gt.eq 2000$, with tree construction dominating total step time at 74–79%.
 
 2. *Numerical quality (RQ2)*: Energy conservation analysis reveals that 32-bit GPU floating-point precision is the primary constraint on numerical fidelity, dominating the effects of opening angle and timestep for the configurations tested. The leapfrog integrator maintains stable orbits and conserves momentum, but quantitative energy drift comparisons between integrators are confounded by the different precision of their force computation paths (32-bit GPU vs 64-bit CPU).
 
-3. *Platform feasibility (RQ3)*: WebGPU on the Apple M2 sustains interactive frame rates ($> 60$ FPS) for up to at least $N = 50000$ particles in native mode. Browser execution via Emscripten adds a fixed overhead of approximately 4.3 ms per step from event-loop scheduling, reducing the overhead factor from 9.2$times$ at $N = 100$ to 2.7$times$ at $N = 100000$. Energy drift is numerically consistent across platforms, confirming that the browser WebGPU path executes equivalent GPU computation. The primary platform constraints are 32-bit GPU arithmetic precision and the fixed per-step browser scheduling cost, not buffer limits or compute throughput.
+3. *Platform feasibility (RQ3)*: WebGPU on the Apple M2 sustains interactive frame rates ($> 60$ FPS) for up to at least $N = 50000$ particles in native mode. Browser execution via Emscripten adds a fixed overhead of approximately 4.3 ms per step from event-loop scheduling, reducing the overhead factor from 9.2$times$ at $N = 100$ to 2.7$times$ at $N = 100000$. Energy drift is numerically consistent across platforms, and the browser path produces the same numerical results. The primary platform constraints are 32-bit GPU arithmetic precision and the fixed per-step browser scheduling cost, not buffer limits or compute throughput.
