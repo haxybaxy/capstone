@@ -15,6 +15,8 @@
 
 #set math.equation(numbering: "(1)", block: true)
 
+#show figure.caption: emph
+
 #set par(justify: true, leading: 1.0em, first-line-indent: 1.5em)
 
 #set page(

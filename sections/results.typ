@@ -33,9 +33,7 @@ This section presents the empirical results from the experiment groups defined i
 @fig:n-scaling-plummer presents the mean runtime per timestep as a function of $N$ for the GPU LBVH Barnes–Hut path on the Plummer sphere scenario. Total runtime per step increases from 0.61 ms at $N = 100$ to 2.35 ms at $N = 100000$, representing a factor of 3.9 increase over a 1000-fold growth in particle count. This sub-linear scaling is consistent with $O(N log N)$ force evaluation overlaid with GPU parallelism: the arithmetic cost grows as $N log N$, but the GPU's data-parallel execution absorbs much of this growth up to the point where occupancy saturates.
 
 #figure(
-  rect(width: 80%, height: 7cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: Log-log plot of mean ms/step vs N for Plummer sphere (GPU LBVH, leapfrog). X-axis: N from 100 to 100,000. Y-axis: ms/step from 0.5 to 3. Include $O(N log N)$ reference line. Data points: (100, 0.61), (500, 0.88), (1000, 1.04), (2000, 1.22), (5000, 1.34), (10000, 1.78), (25000, 2.00), (50000, 2.20), (100000, 2.35)._]
-  ],
+  image("../graphics/fig_n_scaling_plummer.png", width: 80%),
   caption: [Mean runtime per timestep as a function of $N$ for the Plummer sphere scenario (GPU LBVH, leapfrog, $theta = 0.75$). The sub-linear growth is consistent with GPU-parallel $O(N log N)$ force evaluation.],
 ) <fig:n-scaling-plummer>
 
@@ -61,9 +59,7 @@ The rotating disk scenario exhibits similar behaviour. Runtime increases from 1.
 ) <tab:crossover>
 
 #figure(
-  rect(width: 80%, height: 7cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: Log-log plot showing direct ms/step (orange) and tree ms/step (blue) vs N. Lines cross between N=1000 and N=2000. Include data from the table above._]
-  ],
+  image("../graphics/fig_crossover.png", width: 80%),
   caption: [Direct vs tree force evaluation runtime. The crossover at $N approx 1500$ marks where the per-step tree construction cost is amortised by the reduction in force evaluations.],
 ) <fig:crossover>
 
@@ -86,9 +82,7 @@ The rotating disk scenario exhibits similar behaviour. Runtime increases from 1.
 ) <tab:timing-decomp>
 
 #figure(
-  rect(width: 80%, height: 6cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: Stacked bar chart showing tree\_build\_ms (blue), force\_ms (orange), integrate\_ms (green) at N = 1000, 5000, 10000, 50000, 100000. Tree build is the dominant component at all N._]
-  ],
+  image("../graphics/fig_timing_decomp.png", width: 80%),
   caption: [Stacked timing decomposition at selected particle counts. Tree construction (blue) dominates at all $N$, with force evaluation (orange) as the secondary component.],
 ) <fig:timing-decomp>
 
@@ -130,9 +124,7 @@ The leapfrog integrator at default parameters ($Delta t = 0.001$, $theta = 0.75$
 The Euler integrator at the same $N$ and $Delta t$ produces a substantially lower final drift of $9.28 times 10^(-3)$, again attributable to the 64-bit CPU force computation path rather than intrinsic integrator quality.
 
 #figure(
-  rect(width: 80%, height: 7cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: Line plot of energy drift vs step number for Plummer sphere N=5000. Show leapfrog (GPU, blue) rising to ~1.84 and Euler (CPU, orange dashed) staying near ~0.01. X-axis: 0 to 5000 steps. Y-axis: energy drift (log scale or linear)._]
-  ],
+  image("../graphics/fig_energy_drift.png", width: 80%),
   caption: [Energy drift evolution for the Plummer sphere ($N = 5000$, $Delta t = 0.001$, $theta = 0.75$). The difference between integrators reflects the underlying force computation precision (32-bit GPU vs 64-bit CPU) rather than integration scheme quality.],
 ) <fig:energy-drift-plummer>
 
@@ -194,9 +186,7 @@ The constant browser wall-clock time indicates that per-step duration is dominat
 Energy drift values are nearly identical between the two platforms at each $N$, with relative differences below 1% for $N gt.eq 10000$ and below 2% at smaller $N$. The small discrepancies at lower $N$ are attributable to differences in floating-point intermediate rounding between the native and browser WebGPU driver paths, but both platforms produce the same qualitative energy evolution and the same order-of-magnitude drift at every $N$. Both platforms therefore produce matching numerical output from the same GPU shaders.
 
 #figure(
-  rect(width: 80%, height: 7cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: Plot of ms/step vs N for native (blue, rising from 0.61 to 2.35) and browser wall-clock (orange, flat at ~5.5–6.3). X-axis: N from 100 to 100,000 (log scale). Y-axis: ms/step from 0 to 8. Shaded region between the two lines represents the fixed ~4.3ms event-loop overhead._]
-  ],
+  image("../graphics/fig_web_native.png", width: 80%),
   caption: [Native vs browser execution time per step. The browser wall-clock is dominated by a fixed ~4.3 ms event-loop scheduling overhead (shaded region) from Emscripten asyncify, independent of $N$. The overhead factor decreases from 9.2$times$ at $N = 100$ to 2.7$times$ at $N = 100000$.],
 ) <fig:web-native>
 
