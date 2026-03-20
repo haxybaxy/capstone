@@ -35,11 +35,11 @@
 // #include "sections/abstract.typ"
 #include "sections/introduction.typ"
 #include "sections/methodology.typ"
-// #include "sections/experiments.typ"
-// #include "sections/results.typ"
-// #include "sections/discussion.typ"
-// #include "sections/future_work.typ"
-// #include "sections/conclusions.typ"
+#include "sections/experiments.typ"
+#include "sections/results.typ"
+#include "sections/discussion.typ"
+#include "sections/future_work.typ"
+#include "sections/conclusions.typ"
 // #include "sections/appendix.typ"
 
 #pagebreak()
