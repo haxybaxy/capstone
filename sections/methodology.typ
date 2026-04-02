@@ -132,9 +132,7 @@ An internal node is accepted as a monopole approximation when it is sufficiently
 The default opening angle $theta = 0.75$ is used as a practical balance between accuracy and performance. For comparison, GADGET-2 uses $theta$ values in the range 0.5 to 0.7 for cosmological simulations where higher force accuracy is required @springel_2005, while the original Barnes and Hut paper used $theta = 1.0$ @barneshut. The parameter sweeps in the evaluation protocol (see @sec:evaluation-protocol) systematically characterize the accuracy–performance trade-off across $theta in {0.3, 0.5, 0.7, 1.0}$.
 
 #figure(
-  rect(width: 100%, height: 6cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: Tree opening criterion geometry showing a target particle, a distant tree node, the distance $d$, the node extent, and the $theta$ threshold for both BVH (maximum AABB extent) and octree (half-width) variants._]
-  ],
+  image("../graphics/fig_opening_criterion.png", width: 100%),
   caption: [Geometry of the opening criterion. A node is approximated as a monopole when its angular size, as measured by extent/$d$, falls below the threshold $theta$. Left: BVH variant using maximum AABB extent. Right: octree variant using cell half-width.],
 ) <fig:opening-criterion>
 
@@ -145,9 +143,7 @@ The implementation is written in C++20 for host-side orchestration and physics, 
 The primary execution mode is GPU-primary: all physics operations (integration, tree construction, and force evaluation) are performed on the GPU each step. Diagnostic quantities are computed on the CPU only at configurable intervals through staging-buffer readback of positions and velocities, with the diagnostic frequency set to every 60 frames in interactive mode and every step or every 50 steps in headless mode depending on $N$. To support cross-checking and fallback behavior, CPU mirror arrays (`cpuPositions_`, `cpuVelocities_`, `cpuAccelerations_`) are retained and used by non-primary modes (Euler and CPU-tree leapfrog), where scalar CPU loops and a CPU octree are executed in parallel with the GPU path. This design yields two methodological advantages: first, no per-step CPU physics overhead in the primary mode, since the tree is built directly from GPU-resident particle state; second, cross-validation potential across runs, since selecting the CPU octree versus GPU BVH path provides two independent hierarchical implementations for comparative diagnostics.
 
 #figure(
-  rect(width: 100%, height: 7cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: System architecture block diagram showing C++ host orchestration, WebGPU compute shader dispatch, GPU storage buffers (positions, velocities, accelerations, BVH nodes), staging buffer readback for diagnostics, CPU mirror arrays for fallback paths, and the rendering pipeline reading directly from storage buffers._]
-  ],
+  image("../graphics/fig_system_architecture.png", width: 80%),
   caption: [System architecture overview. The GPU-primary path (solid arrows) performs all physics on-device. CPU mirror arrays (dashed arrows) support fallback execution modes and cross-validation. Diagnostic readback occurs at configurable intervals via staging buffers.],
 ) <fig:system-architecture>
 
@@ -174,9 +170,7 @@ Each timestep is recorded into a single command encoder and submitted as one com
 6. Diagnostics readback (periodic): stage-map-readback $arrow.r$ CPU double-precision energy and momentum computation
 
 #figure(
-  rect(width: 60%, height: 8cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: Vertical flow diagram showing the six per-timestep passes: half-kick, drift, LBVH build (with 7 sub-passes expanded), BVH force evaluation, half-kick, and periodic diagnostics readback._]
-  ],
+  image("../graphics/fig_timestep_pipeline.png", width: 50%),
   caption: [Per-timestep GPU execution pipeline for the leapfrog integrator. All six passes are recorded into a single command buffer. The LBVH build (pass 3) comprises seven sub-passes with implicit barrier synchronization between each.],
 ) <fig:timestep-pipeline>
 
@@ -189,9 +183,7 @@ Tree traversal is implemented iteratively in the BVH force shader. One GPU threa
 The LBVH is built fully on-device in seven conceptual steps. First, a two-pass parallel reduction computes the global axis-aligned bounding box. Second, particle positions are normalized to a $[0, 1023]^3$ integer grid and their bits interleaved to produce 30-bit Morton codes @morton1966, which impose a spatial ordering along a space-filling Z-curve. Third, Morton codes and associated particle indices are sorted using a bitonic sort network @batcher1968 with multiple $(k, j)$ sub-passes and dynamic uniform offsets; arrays are padded to the next power of two, with sentinel codes assigned to padding elements. Fourth, the parallel binary tree topology is constructed using the Karras delta function (leading zeros of the XOR of adjacent codes, with tie-breaking for duplicates) @maximizeparallel. Fifth, leaves are initialized by mapping sorted indices to particle positions, masses, and point AABBs. Sixth, internal-node AABBs and centers of mass are aggregated bottom-up using atomic counters to ensure both children are processed before their parent. The resulting BVH is immediately traversable without CPU-side construction or upload, eliminating a per-step CPU bottleneck in the primary execution mode.
 
 #figure(
-  rect(width: 70%, height: 8cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: Vertical flow diagram showing the seven LBVH construction sub-passes with data dependencies: (1) global AABB reduction, (2) Morton code generation, (3) bitonic sort, (4) Karras topology, (5) leaf initialization, (6) bottom-up aggregation. Arrows indicate barrier synchronization points between passes._]
-  ],
+  image("../graphics/fig_lbvh_pipeline.png", width: 45%),
   caption: [LBVH construction pipeline. Seven compute dispatches build the tree entirely on-device. Each arrow represents an implicit storage-buffer barrier. The atomic-counter aggregation in pass 6 ensures correct bottom-up propagation of bounding boxes and centers of mass.],
 ) <fig:lbvh-pipeline>
 
@@ -258,9 +250,13 @@ with the velocity directed tangentially. This simplified dynamical setup is not 
 Because initial conditions are stochastic, robustness is assessed by repeating runs with different seeds (`--seed 1`, `--seed 2`, and so on) and comparing diagnostics and timing. Initial condition generation uses `std::mt19937` seeded by the `--seed` parameter (default 42), ensuring deterministic reproduction of particle distributions and velocities. Runs are considered valid if they complete without NaN or overflow values and produce consistent parameter logs. Deliberately unstable configurations (such as excessively large $Delta t$) are retained as documented failures for robustness reporting rather than silently excluded.
 
 #figure(
-  rect(width: 100%, height: 6cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: Three-panel figure showing initial particle distributions. Left: Scenario A (two-body orbit, two particles with velocity vectors). Center: Scenario B (Plummer sphere, spherically symmetric particle cloud). Right: Scenario C (exponential disk, face-on view showing disk structure)._]
-  ],
+  grid(
+    columns: 3,
+    gutter: 12pt,
+    figure(image("../graphics/fig_scenario_a.png", width: 100%), caption: [_(a) Two-body orbit_], numbering: none),
+    figure(image("../graphics/fig_scenario_b.png", width: 100%), caption: [_(b) Plummer sphere_], numbering: none),
+    figure(image("../graphics/fig_scenario_c.png", width: 100%), caption: [_(c) Exponential disk_], numbering: none),
+  ),
   caption: [Initial particle distributions for the three benchmark scenarios. (a) Scenario A: two-body orbit. (b) Scenario B: Plummer sphere with $N = 10000$. (c) Scenario C: exponential disk with $N = 50000$.],
 ) <fig:scenarios>
 

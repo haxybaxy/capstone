@@ -15,6 +15,8 @@
 
 #set math.equation(numbering: "(1)", block: true)
 
+#show figure.caption: emph
+
 #set par(justify: true, leading: 1.0em, first-line-indent: 1.5em)
 
 #set page(
@@ -30,6 +32,9 @@
 )
 
 #set bibliography(style: "apa") // numeric-ish
+
+// Make URLs in bibliography clickable and styled
+#show link: it => underline(text(fill: rgb("#0000EE"), it))
 
 #include "sections/title_page.typ"
 // #include "sections/abstract.typ"
