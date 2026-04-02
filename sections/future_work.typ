@@ -6,7 +6,7 @@ The limitations identified in the discussion suggest several concrete directions
 
 == Adaptive Individual Timestepping
 
-The fixed global timestep used in this implementation requires a conservative choice of $Delta t$ that accommodates the densest region of the simulation. Adaptive individual timestepping, as implemented in GADGET-2 @springel_2005, assigns each particle a timestep proportional to a local dynamical timescale (such as $sqrt(epsilon / |a_i|)$) and synchronises particles using block timestepping. Implementing this in WebGPU compute shaders would require per-particle step bookkeeping in storage buffers and more complex dispatch logic, but would significantly improve accuracy in the dense cores of Plummer spheres and disk centres without penalising the timestep for particles in diffuse outer regions.
+The fixed global timestep used in this implementation requires a conservative choice of $Delta t$ that accommodates the densest region of the simulation. Adaptive individual timestepping, as implemented in GADGET-2 @springel_2005, assigns each particle a timestep proportional to a local dynamical timescale (such as $sqrt(epsilon / ( |a_i| ))$) and synchronises particles using block timestepping. Implementing this in WebGPU compute shaders would require per-particle step bookkeeping in storage buffers and more complex dispatch logic, but would significantly improve accuracy in the dense cores of Plummer spheres and disk centres without penalising the timestep for particles in diffuse outer regions.
 
 == Cross-Browser and Cross-Device Benchmarking
 
