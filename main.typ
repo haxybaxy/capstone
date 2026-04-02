@@ -33,6 +33,9 @@
 
 #set bibliography(style: "apa") // numeric-ish
 
+// Make URLs in bibliography clickable and styled
+#show link: it => underline(text(fill: rgb("#0000EE"), it))
+
 #include "sections/title_page.typ"
 // #include "sections/abstract.typ"
 #include "sections/introduction.typ"
