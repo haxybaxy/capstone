@@ -19,7 +19,6 @@ All experiments were executed on a single workstation whose configuration is sum
     [Operating System], [macOS (Darwin 25.2.0)],
     [WebGPU Backend], [wgpu-native (Rust-based, Metal backend 0x5)],
     [Compiler], [Apple Clang, C++20, Release build (-O2)],
-    [Build System], [CMake + FetchContent (pinned dependency versions)],
     [Timing], [`std::chrono::high_resolution_clock` (ms precision)],
     [Diagnostic Precision], [CPU double-precision (64-bit) for energy and momentum],
   ),

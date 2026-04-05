@@ -164,7 +164,13 @@ The implementation comprises twelve WGSL compute shaders organized into two func
 Each timestep is recorded into a single command encoder and submitted as one command buffer. The six sequential passes are:
 1. Half-kick: $v arrow.l v + (a Delta t) / 2$
 2. Drift: $r arrow.l r + v Delta t$
-3. LBVH build (7 sub-passes): global AABB reduction $arrow.r$ Morton code generation $arrow.r$ bitonic sort $arrow.r$ Karras topology construction $arrow.r$ leaf initialization $arrow.r$ bottom-up aggregation
+3. LBVH build (7 sub-passes):
+  - global AABB reduction
+  - Morton code generation
+  - bitonic sort
+  - Karras topology construction
+  - leaf initialization
+  - bottom-up aggregation
 4. BVH force evaluation: iterative traversal with fixed-depth explicit stack (depth 64, sufficient for all tested $N$)
 5. Half-kick: $v arrow.l v + (a Delta t) / 2$
 6. Diagnostics readback (periodic): stage-map-readback $arrow.r$ CPU double-precision energy and momentum computation
@@ -199,7 +205,7 @@ Having described the solver and its implementation, the following section specif
 
 == Initial Conditions and Benchmark Scenarios <sec:initial-conditions>
 
-No external astronomical datasets are used. All experiments are generated from synthetic initial conditions and produce derived outputs (trajectories, diagnostic scalars, and timing logs). This design eliminates licensing and privacy concerns and enables controlled, repeatable comparisons across parameter sweeps. Each experiment is fully specified by command-line parameters: scenario type, seed, $N$, $Delta t$, $theta$, softening $epsilon$, and step count.
+No external astronomical datasets are used. All experiments are generated from synthetic initial conditions and produce derived outputs (trajectories, diagnostic scalars, and timing logs). This  enables controlled, repeatable comparisons across parameter sweeps. Each experiment is fully specified by command-line parameters: scenario type, seed, $N$, $Delta t$, $theta$, softening $epsilon$, and step count.
 
 === Scenario A: two-body orbit (sanity check)
 
@@ -297,10 +303,6 @@ The validation strategy rests on three pillars: theoretical grounding, empirical
 Empirical validation is provided at multiple levels. Scenario A (two-body orbit) offers a controlled sanity check for orbit stability and integrator correctness, where deviations from the analytic circular orbit can be directly measured. Deterministic seeds and complete parameter logging ensure that any run can be exactly reproduced. Fixed step counts (`--steps`) provide consistent comparison across runs, and instability events are recorded rather than filtered. The availability of both CPU octree and GPU BVH execution paths allows cross-validation of force evaluation results for the same initial conditions.
 
 Practical constraints are explicitly acknowledged. Interactive runs couple stepping to the render loop, while headless mode prioritizes throughput. Particle count is adjustable from 2 to 100,000. Potential energy tracking is intentionally limited to $N lt.eq 5000$ to avoid prohibitive $O(N^2)$ overhead; for larger $N$, stability is assessed through kinetic energy and momentum diagnostics combined with qualitative morphological assessment. These precision and buffer constraints connect directly to the WebGPU platform limitations described in the platform justification section, where 32-bit arithmetic and device variability were identified as fundamental characteristics of the target environment.
-
-== Data Ethics, Security, and Integrity
-
-No personal or sensitive data are collected. All computation runs locally (native) or within the user's browser sandbox (Emscripten). Diagnostic logs and trajectories are exported only when explicitly requested (`--export`). Each CSV export is linked to the complete set of runtime parameters (scenario, $N$, $Delta t$, $theta$, $epsilon$, seed, integrator, steps). The primary practical risk is high GPU load; mitigation is provided through adjustable $N$ and configurable step limits.
 
 == Reproducibility and Traceability
 
