@@ -2,7 +2,7 @@
 = Results and Analysis
 #set heading(numbering: "1.1")
 
-This section presents the empirical results from the experiment groups defined in the previous section, organised by research question. All timing values are mean milliseconds per step computed after discarding the first ten steps as warmup. Energy drift is reported as the final-step value $Delta E = (|E(t) - E(0)|) / ( |E(0)| )$.
+This section presents the empirical results from the experiment groups defined in the previous section, organised by the three research questions introduced in the methodology: RQ1 (scalability of runtime with particle count), RQ2 (numerical quality and conservation behaviour), and RQ3 (platform feasibility across native and browser execution). All timing values are mean milliseconds per step computed after discarding the first ten steps as warmup. Energy drift is reported as the final-step value $Delta E = (|E(t) - E(0)|) \/ |E(0)|$.
 
 == Performance Overview
 
@@ -41,7 +41,7 @@ The rotating disk scenario exhibits similar behaviour. Runtime increases from 1.
 
 === Tree vs Direct Crossover
 
-@tab:crossover presents the comparison between hierarchical ($O(N log N)$) and direct ($O(N^2)$) force evaluation. At $N = 1000$ and below, direct summation is faster because the per-step tree construction overhead exceeds the savings from reduced force evaluations. At $N = 2000$, the tree path becomes faster (1.15 ms versus 2.34 ms), and the advantage grows with $N$: at $N = 5000$, the tree path is 3.5 times faster. The crossover occurs between $N = 1000$ and $N = 2000$, consistent with the expectation that tree overhead is amortised only when $N$ is large enough for the $O(N^2)$ to $O(N log N)$ reduction to dominate.
+@tab:crossover presents the comparison between hierarchical ($O(N log N)$) and direct ($O(N^2)$) force evaluation. At $N = 1000$ and below, direct summation is faster because the per-step tree construction overhead exceeds the savings from reduced force evaluations. At $N = 2000$, the tree path becomes faster (1.15 ms versus 2.34 ms), and the advantage grows with $N$: at $N = 5000$, the tree path is 3.5 times faster. The crossover, shown in @fig:crossover, occurs between $N = 1000$ and $N = 2000$, consistent with the expectation that tree overhead is amortised only when $N$ is large enough for the $O(N^2)$ to $O(N log N)$ reduction to dominate.
 
 #figure(
   table(
@@ -65,7 +65,7 @@ The rotating disk scenario exhibits similar behaviour. Runtime increases from 1.
 
 === Timing Decomposition
 
-@tab:timing-decomp breaks total runtime into its three components. Tree construction dominates at all tested particle counts, accounting for 74 to 79 percent of total step time. Force evaluation accounts for 18 to 20 percent, and integration (kick and drift dispatches) accounts for approximately 2 to 4 percent. The dominance of tree construction reflects the cost of the seven-pass LBVH pipeline (bounding box reduction, Morton code generation, bitonic sort, Karras topology, leaf initialisation, bottom-up aggregation) relative to the single-pass BVH traversal for force evaluation.
+@tab:timing-decomp breaks total runtime into its three components. Tree construction dominates at all tested particle counts, accounting for 74 to 79 percent of total step time, as shown in @fig:timing-decomp. Force evaluation accounts for 18 to 20 percent, and integration (kick and drift dispatches) accounts for approximately 2 to 4 percent. The dominance of tree construction reflects the cost of the seven-pass LBVH pipeline (bounding box reduction, Morton code generation, bitonic sort, Karras topology, leaf initialisation, bottom-up aggregation) relative to the single-pass BVH traversal for force evaluation.
 
 #figure(
   table(
@@ -106,7 +106,7 @@ The two-body orbit provides the simplest test of integrator correctness. @tab:tw
   caption: [Final energy drift $Delta E / ( |E(0)| )$ after 50,000 steps for the two-body orbit (Scenario A). The difference between integrators is dominated by the force computation precision: GPU BVH (32-bit) versus CPU octree (64-bit).],
 ) <tab:twobody-drift>
 
-For very small $N$, the 32-bit precision of GPU computation is the binding constraint on numerical quality, not the integration scheme. The two-body scenario remains useful as a code-path sanity check (both paths complete without NaN or divergence), but quantitative energy-conservation comparisons between integrators require the same force computation path.
+For very small $N$, the 32-bit precision of GPU computation is the binding constraint on numerical quality, not the integration scheme. @fig:twobody-orbit shows the orbit trajectory from interactive mode. The two-body scenario remains useful as a validation of code-path correctness (both paths complete without NaN or divergence), but quantitative energy-conservation comparisons between integrators require the same force computation path.
 
 #figure(
   rect(width: 80%, height: 6cm, stroke: 0.5pt + gray, inset: 1em)[
@@ -161,7 +161,7 @@ For the Plummer sphere at $N = 5000$, the total momentum magnitude $||P(t)|| = |
 
 === Native vs Browser Execution
 
-@tab:web-native presents the comparison between native desktop execution (wgpu-native, Metal backend) and browser execution (Emscripten WebAssembly, browser WebGPU) for the same GPU LBVH Barnes–Hut configuration. The wall-clock time per step in the browser is remarkably constant at 5.5–6.3 ms regardless of $N$, while native execution scales from 0.61 ms at $N = 100$ to 2.35 ms at $N = 100000$. The overhead factor therefore decreases from 9.2$times$ at $N = 100$ to 2.7$times$ at $N = 100000$.
+@tab:web-native presents the comparison between native desktop execution (wgpu-native, Metal backend) and browser execution (Emscripten WebAssembly, browser WebGPU) for the same GPU LBVH Barnes–Hut configuration. The wall-clock time per step in the browser is remarkably constant at 5.5–6.3 ms regardless of $N$, while native execution scales from 0.61 ms at $N = 100$ to 2.35 ms at $N = 100000$. The overhead factor therefore decreases from 9.2$times$ at $N = 100$ to 2.7$times$ at $N = 100000$, as shown in @fig:web-native.
 
 #figure(
   table(
@@ -198,14 +198,8 @@ At $N = 100000$, the GPU scheduling overhead remains a small fraction of total s
 
 === Seed Robustness
 
-Three independent Plummer sphere realisations ($N = 5000$, seeds 42, 123, 256) show consistent timing (6.9 to 11.2 ms/step, with the higher value for seed 123 attributable to a less favourable initial particle distribution affecting tree traversal depth) and energy drift ranging from 0.64 to 1.24. The variation in drift reflects the sensitivity of finite-$N$ relaxation to the specific particle configuration, confirming that energy evolution is initial-condition-dependent as expected for an $N$-body system.
+Three independent Plummer sphere realisations ($N = 5000$, seeds 42, 123, 256) show timing that varies from 6.9 to 11.2 ms/step, with the highest value (seed 123) likely attributable to a less favourable initial particle distribution affecting tree traversal depth. Energy drift ranges from 0.64 to 1.24 across seeds. The variation in drift reflects the sensitivity of finite-$N$ relaxation to the specific particle configuration, confirming that energy evolution is initial-condition-dependent as expected for an $N$-body system.
 
-== Integrated Assessment
+== Summary of Findings
 
-The results address the three research questions:
-
-1. *Scalability (RQ1)*: The GPU LBVH Barnes–Hut implementation scales sub-linearly with $N$, achieving only a 3.9$times$ increase in step time over a 1000$times$ increase in particle count. The tree-based approach outperforms direct $O(N^2)$ summation for $N gt.eq 2000$, with tree construction dominating total step time at 74–79%.
-
-2. *Numerical quality (RQ2)*: Energy conservation analysis reveals that 32-bit GPU floating-point precision is the primary constraint on numerical fidelity, dominating the effects of opening angle and timestep for the configurations tested. The leapfrog integrator maintains stable orbits and conserves momentum, but quantitative energy drift comparisons between integrators are confounded by the different precision of their force computation paths (32-bit GPU vs 64-bit CPU).
-
-3. *Platform feasibility (RQ3)*: WebGPU on the Apple M2 sustains interactive frame rates ($> 60$ FPS) for up to at least $N = 50000$ particles in native mode. Browser execution via Emscripten adds a fixed overhead of approximately 4.3 ms per step from event-loop scheduling, reducing the overhead factor from 9.2$times$ at $N = 100$ to 2.7$times$ at $N = 100000$. Energy drift is numerically consistent across platforms, and the browser path produces the same numerical results. The primary platform constraints are 32-bit GPU arithmetic precision and the fixed per-step browser scheduling cost, not buffer limits or compute throughput.
+In summary, the GPU LBVH Barnes–Hut implementation scales sub-linearly with $N$ (RQ1), with tree construction as the dominant bottleneck at 74–79% of step time. The 32-bit precision floor of WebGPU is the primary constraint on numerical fidelity (RQ2), exceeding the effects of opening angle and timestep. Browser execution adds a fixed 4.3 ms per-step overhead from event-loop scheduling but preserves the sub-linear scaling and produces numerically consistent results (RQ3). These findings are interpreted in the following discussion section.

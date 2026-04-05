@@ -25,16 +25,7 @@ All experiments were executed on a single workstation whose configuration is sum
   caption: [Hardware and software configuration for all experiments. The Apple M2 integrated GPU uses Metal as the underlying graphics API, accessed through the wgpu-native WebGPU implementation.],
 ) <tab:platform>
 
-Each run is invoked from the command line as:
-
-```
-./galaxysim --headless --scenario <S> --N <N> --dt <dt>
-  --theta <θ> --softening <ε> --integrator <I>
-  --tree <T> --force-method <F> --steps <steps>
-  --seed <seed> --export <output.csv>
-```
-
-The CSV output records twelve columns per step: step number, simulation time, kinetic energy, potential energy (zero when $N > 5000$), total energy, energy drift, three momentum components ($p_x$, $p_y$, $p_z$), and three timing components (tree build, force evaluation, and integration in milliseconds). Timing values are averaged over all steps after discarding the first ten as warmup.
+Each run is executed in headless batch mode, with all simulation parameters (scenario type, $N$, $Delta t$, $theta$, softening $epsilon$, integrator, tree type, force method, step count, and random seed) specified at invocation. The CSV output records twelve columns per step: step number, simulation time, kinetic energy, potential energy (zero when $N > 5000$), total energy, energy drift, three momentum components ($p_x$, $p_y$, $p_z$), and three timing components (tree build, force evaluation, and integration in milliseconds). Timing values are averaged over all steps after discarding the first ten as warmup.
 
 == Experiment Groups
 
@@ -75,7 +66,7 @@ Sub-group 2f repeats the default configuration ($N = 5000$, $Delta t = 0.001$, $
 
 === Group 3: Rotating Disk Scaling (Scenario C)
 
-The disk scenario targets large-$N$ scalability and qualitative morphological assessment. Sub-group 3a scales $N$ over ${10000, 25000, 50000, 75000, 100000}$ with default parameters and 1,000 steps each, measuring runtime scaling and timing decomposition. Morphological evolution (spiral arm formation, bar instability) is assessed through interactive-mode visualisation at selected timesteps and reported descriptively.
+The disk scenario targets large-$N$ scalability and qualitative morphological assessment. Sub-group 3a scales $N$ over ${10000, 25000, 50000, 75000, 100000}$ with default parameters and 1,000 steps each, measuring runtime scaling and timing decomposition. Morphological evolution (spiral arm formation, bar instability) is assessed through interactive-mode visualisation at selected timesteps (@fig:disk-evolution) and reported descriptively.
 
 #figure(
   grid(
@@ -91,10 +82,10 @@ The disk scenario targets large-$N$ scalability and qualitative morphological as
 
 === Group 4: Direct vs Tree Crossover
 
-To identify the particle count at which hierarchical force evaluation becomes faster than direct $O(N^2)$ summation, this group runs both `--force-method direct` and `--force-method tree` at $N in {100, 200, 500, 1000, 2000, 5000}$ using the Plummer sphere scenario. Each configuration runs for 500 steps with default physics parameters.
+To identify the particle count at which hierarchical force evaluation becomes faster than direct $O(N^2)$ summation, this group runs both the direct summation and tree-based force evaluation at $N in {100, 200, 500, 1000, 2000, 5000}$ using the Plummer sphere scenario. Each configuration runs for 500 steps with default physics parameters.
 
 === Group 5: Native vs Browser Execution
 
-To evaluate WebGPU's portability promise (RQ3), the same GPU LBVH Barnes–Hut configuration used in Group 2a is executed in a browser environment via Emscripten. The native C++/wgpu-native binary is cross-compiled with Emscripten using `-sASYNCIFY` (to yield to the browser event loop each timestep) and `-sALLOW_MEMORY_GROWTH=1`. The resulting WebAssembly module runs in a headless Chromium instance on the same hardware, using the browser's WebGPU implementation (backed by the same Metal driver). Particle counts sweep $N in {100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000}$ with all other parameters matching Group 2a ($Delta t = 0.001$, $theta = 0.75$, $epsilon = 0.5$, leapfrog, GPU LBVH, 1000 steps).
+To evaluate WebGPU's portability promise (RQ3), the same GPU LBVH Barnes–Hut configuration used in Group 2a is executed in a browser environment via Emscripten @emscripten. The native C++ codebase is cross-compiled to WebAssembly (WASM) using Emscripten with two key flags: `-sASYNCIFY`, which transforms synchronous C++ code into asynchronous form so that the simulation can yield control to the browser's event loop between timesteps (required because browsers do not allow long-running synchronous code on the main thread), and `-sALLOW_MEMORY_GROWTH=1`, which permits the WebAssembly linear memory to grow dynamically as particle count increases rather than requiring a fixed-size allocation at compile time. The resulting WebAssembly module runs in a headless Chromium instance on the same hardware, using the browser's WebGPU implementation (backed by the same Metal driver). Particle counts sweep $N in {100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000}$ with all other parameters matching Group 2a ($Delta t = 0.001$, $theta = 0.75$, $epsilon = 0.5$, leapfrog, GPU LBVH, 1000 steps).
 
 Two timing metrics are collected: (1) wall-clock milliseconds per step, computed from the console-log timestamps emitted every 100 steps, which captures all overhead including event-loop scheduling and Emscripten asyncify yields; and (2) GPU-side timing from the sampled per-step tree/force/integrate breakdowns logged to the console. Energy drift at the final step is compared to the native run at each $N$ to verify numerical consistency across platforms. A GPU command-buffer flush was required after each compute dispatch in the browser path to prevent command coalescing from stalling the pipeline; this fix had no effect on native execution.
