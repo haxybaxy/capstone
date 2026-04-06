@@ -8,98 +8,130 @@ Everything you need to do, organized by priority. Check off as you go.
 
 ### Investigate Suspicious Data
 
-- [ ] **Fig 11**: Verlet 32-bit shows no energy drift — something is wrong. Re-run and check the data/plot
-- [ ] **Table 10**: Values jump from ~0.1 to ~1 to ~1e-10. Investigate whether this is a bug or a precision artifact
-- [ ] **Table 5**: Missing values — figure out why and either fill them or explain the gap
-- [ ] **Fig 7**: The "NlogN" reference line has the wrong slope. Supervisor thinks it's actually N^2. Fix the label/line
+- [ ] **Fig 7**: The "NlogN" reference line has the wrong slope — need to regenerate with new data
 
 ### New Experiments (Cross-Backend, inspired by Maczan 2026)
 
-- [ ] **Group 6 — Four-way backend comparison**: Run Plummer sphere at N={1000, 10000, 100000} on:
-  - [ ] wgpu-native/Metal (your current default)
-  - [ ] Dawn/Metal (you confirmed this builds)
-  - [ ] Chrome/Metal (Emscripten → browser)
-  - [ ] Safari/Metal (Emscripten → browser)
-  - Use frozen-state protocol: 50 warmup steps, 100 measured steps, positions held constant
-  - Report mean ± std, 95% CI, CV for each
-- [ ] **Group 7 — Per-pass LBVH timing**: Instrument each of the 7 LBVH passes individually at N={1000, 5000, 10000, 50000, 100000}. Export per-pass ms (AABB reduction, Morton codes, radix sort, Karras topology, leaf init, bottom-up aggregation, force eval)
-- [ ] **WASM overhead decomposition**: At N=10000, break down browser overhead into GPU kernel time vs WebGPU API overhead vs asyncify event-loop cost vs WASM compilation overhead
-- [ ] **Ablation study (single-variable changes)**:
-  - [ ] Leapfrog 32-bit GPU vs Leapfrog 32-bit CPU (same precision — fixes Table 8)
-  - [ ] Radix sort vs bitonic sort (if old code still exists)
-  - [ ] Bind groups cached vs recreated each frame (measure before/after)
+- [x] **Group 6 — Four-way backend comparison**: wgpu-native, Dawn, Chrome, Safari at N={1000, 10000, 100000}
+- [x] **Group 7 — Per-pass LBVH timing**: 7 sub-passes at N={1000, 5000, 10000, 50000, 100000}
+- [ ] **WASM overhead decomposition**: Break down browser overhead into GPU kernel vs API vs asyncify
+- [x] **Metal baseline (UniSim)**: Matched params at N={1000, 5000, 10000, 50000, 100000}
+- [x] **N-scaling re-run**: Proper protocol (50 warmup, 100 measured) with new optimized code
 
-### Fix Timing Methodology
+### Fix Existing Figures — REGENERATE ALL WITH NEW DATA
 
-- [ ] Re-run key configurations with proper protocol: 50 warmup steps (no measurement), then 100 measured steps, report mean ± std, 95% CI, CV
-- [ ] Consider frozen-state runs (no position updates) for pure overhead measurement
-
-### Fix Existing Figures
-
-- [ ] **Fig 5a,b**: Plot in negative color, make pixels much larger (currently invisible)
-- [ ] **Fig 6**: Add time units to axes (even natural units have a unit: $t_0 = \sqrt{r_0^3 / (GM_0)}$)
-- [ ] **Fig 7**: Fix the NlogN reference line label (likely N^2)
-- [ ] **Fig 10**: Missing entirely — create it
-- [ ] **Fig 11**: Fix after investigating the data
-- [ ] **Page 20**: Rotated 90 degrees — fix the orientation
+- [ ] **fig_n_scaling_plummer.png** — log-log ms/step vs N (new data)
+- [ ] **fig_crossover.png** — dual-axis: runtime + energy drift, direct vs tree (new framing: speed vs accuracy)
+- [ ] **fig_web_native.png** — native vs Chrome ms/step (new data)
+- [ ] **New: per-pass stacked bar chart** — LBVH breakdown at each N
+- [ ] **New: cross-backend grouped bar chart** — wgpu vs Dawn vs Chrome vs Safari
 
 ---
 
-## 2. PAPER TEXT EDITS (can do in parallel with experiments)
+## 2. PAPER TEXT EDITS
 
-### Still Needs Doing — Content Additions
+### Done — Content Additions
 
-- [ ] **BVH theory section**: Add a conceptual introduction to BVH trees BEFORE the implementation section. Include a diagram and pseudocode. Supervisor: "introduce the algorithm and theory behind it before this section"
-- [ ] **Reference supervisor's PhD manuscript**: Look at his Morton/tree/sort explanation style in section 11.2, consider using his figure with attribution
-- [ ] **Add units to ALL quantities in results**: Even natural units need definition (e.g., $K = 123112 \, t_0^{-2}$ where $t_0 = \sqrt{r_0^3/(GM_0)}$)
-- [ ] **Fix energy drift equation rendering**: Noted as "badly rendered" in both experiments and results sections
-- [ ] **Write the abstract**: Still a placeholder
+- [x] Explained what a Plummer sphere is
+- [x] Rewrote LBVH construction with radix sort, elaborated Karras delta function
+- [x] Added explicit M and center of mass formulas
+- [x] Proper symbol introductions for leapfrog equations
+- [x] Made all quantities vectorial (bold vectors)
+- [x] Explained Emscripten flags (-sASYNCIFY, -sALLOW_MEMORY_GROWTH)
+- [x] SoA vs AoS resolved (packed layout is optimal — force shader never reads particle mass)
+- [x] Re-introduced RQ concept at start of results
+- [x] Added benchmarking protocol section (warmup, mean±std, CI, CV)
+- [x] Added Group 6 and Group 7 experiment descriptions
+- [x] Added Maczan citation in lit review, results, and eval protocol
+- [x] Added Force Traversal Optimisation section (4 optimisations + 2 rejected + combined table)
+- [x] Added GPU synchronisation details (wgpuDevicePoll vs buffer-map fence vs emscripten_sleep)
+- [x] Updated research questions to match new focus (scalability, abstraction overhead, browser feasibility)
+- [x] Updated evaluation protocol (Metal baseline, not Euler/CPU)
+- [x] Updated experimental platform table (16GB, Chrome/Safari versions, Dawn, UniSim)
+- [x] Added UniSim citation (original + fork)
+- [x] Added Maczan to lit review
+- [x] Added supervisor's Morton code Z-curve figure with thesis citation
+- [x] Wrote the abstract
+- [x] Results section fully rewritten with new data
 
-### Still Needs Doing — Content Removals
+### Done — Content Removals
 
-- [ ] **"eliminates licensing and privacy concerns"**: Find and remove (supervisor: "idk what you mean")
-- [ ] **"Data Ethics, Security, and Integrity" section**: Remove if it exists anywhere
-- [ ] **"Build system" line in table**: Remove from platform table
-- [ ] **Remove duplicate dependency pinning mentions**: Check for any remaining duplicates
+- [x] Removed internal variable names (cpuPositions\_ etc)
+- [x] Removed CLI flags from body text
+- [x] Removed "stage-map-readback" vague line
+- [x] Removed verbose logging/dependency descriptions
+- [x] Cut "Validation and Robustness" section
+- [x] Cut "Reproducibility and Traceability" to one sentence
+- [x] Cut "Comparative Positioning" from methodology
+- [x] Cut Group 2d (Euler vs Leapfrog comparison)
+- [x] Cut CPU tree and direct rows from old performance table
+- [x] Removed seed robustness as a limitation
+- [x] Removed all CPU octree references from methodology
+- [x] Removed Euler integrator section
+- [x] Removed CPU execution mode / mirror arrays
+- [x] Removed system architecture figure (referenced CPU paths)
 
-### Still Needs Doing — Structural
+### Done — Structural
 
-- [ ] **Reduce remaining subtitle count**: Audit methodology for any remaining unnecessary `===` sub-headings
-- [ ] **Add transition text**: Check every section boundary — end of each section should bridge to the next
-- [ ] **Audit for the too-little/too-much pattern**: Supervisor example: "rendered as instanced billboard quads" (too vague) immediately followed by "@builtin(instance_index)" (too specific). Find and fix throughout
-- [ ] **"octree-traversal fallback shader" — what is this?**: Supervisor asked. Explain or remove the term
+- [x] Merged sub-sections into flowing prose
+- [x] Added intro paragraphs after section headings
+- [x] Removed GPT-ism parenthetical headings
+- [x] Rewrote limitations as flowing paragraphs
+- [x] Tightened "Integrated Assessment" → "Summary of Findings"
+- [x] Compressed rendering section
+- [x] Compressed shader enumeration
+- [x] Compressed two-body results
+- [x] Merged softening + momentum into one subsection
+- [x] Rewrote discussion to interpret rather than restate
 
-### Still Needs Doing — Tables & Figures
+### Done — Diagrams
 
-- [ ] **Table 8**: Fix to compare same-precision configs (Verlet 32-bit GPU vs Euler 32-bit GPU, not mixed precision)
-- [ ] **"RQ" in Table 4**: Make sure the abbreviation is defined before its first appearance in tables
-- [ ] **Add new results tables** for Group 6 (cross-backend) and Group 7 (per-pass LBVH) once experiments are done
-- [ ] **Create stacked bar chart** for per-pass LBVH timing breakdown
+- [x] Timestep pipeline diagram (fletcher, fig_pipeline.typ)
+- [x] LBVH pipeline diagram (fletcher, fig_lbvh_pipeline.typ)
+- [x] Morton code Z-curve figure (from supervisor's thesis)
 
-### Still Needs Doing — Discussion Section
+### Still TODO — Content
 
-- [ ] **Reference Maczan's dispatch overhead findings**: Compare your ~4.3ms browser overhead to his per-dispatch costs (24-36µs Vulkan, 32-71µs Metal)
-- [ ] **Discuss Metal-specific behavior**: Maczan found fusion helps Vulkan but NOT Metal. Discuss implications for your M2 results
-- [ ] **Comparison with existing work**: Supervisor wishes you could "run some of these yourself on current hardware." The cross-backend comparison partially addresses this
+- [ ] **BVH theory section**: Conceptual introduction to BVH trees BEFORE implementation section, with pseudocode
+- [ ] **Add units to ALL quantities in results**: Define unit system explicitly
+- [ ] **Fix energy drift equation rendering**: Check PDF for badly rendered equations
+- [ ] **Rewrite conclusions**: Still references old RQ1/RQ2/RQ3 names and old data
+- [ ] **Rewrite discussion**: Needs to match new data and new RQs
+- [ ] **Update future work**: Some items are now done (radix sort, bind group caching)
+
+### Still TODO — Supervisor's Specific Requests
+
+- [ ] **"eliminates licensing and privacy concerns"**: Find and remove if still present
+- [ ] **"Data Ethics, Security, and Integrity" section**: Remove if still present
+- [ ] **"Build system" line in table**: Remove from platform table if still present
+- [ ] **"octree-traversal fallback shader"**: Removed from code, verify removed from all text
+- [ ] **Reference supervisor's PhD manuscript style**: Mimic his Morton/tree explanation approach
 
 ---
 
 ## 3. CODE CHANGES (simulation)
 
-- [ ] **Explore indirect dispatch**: Could reduce CPU-side overhead for LBVH pipeline
-- [ ] **Explore bundle encoders**: Pre-record render/compute bundles for reuse
-- [ ] **Add frozen-state mode**: Flag to skip position updates but still run full pipeline (for overhead measurement)
-- [ ] **Per-pass timing export**: Make sure each LBVH sub-pass timing is exported to CSV or logged separately
-- [ ] **Research asyncify alternatives**: Supervisor is personally interested in reducing the ~4.3ms event-loop overhead. Report findings even if no solution found
+- [x] Removed CPU octree code
+- [x] Implemented radix sort (replacing bitonic sort)
+- [x] Implemented bind group caching
+- [x] Implemented precomputed opening radius
+- [x] Implemented compact traversal nodes
+- [x] Workgroup size tuning (128)
+- [x] Morton-ordered particle access
+- [x] Forked and fixed UniSim for 100K benchmarking
+- [ ] **Explore indirect dispatch**: Could reduce CPU-side overhead
+- [ ] **Explore bundle encoders**: Pre-record compute bundles for reuse
 
 ---
 
 ## 4. FINAL PASS (after everything above)
 
 - [ ] Compile with `typst compile main.typ` — zero warnings
-- [ ] Read every section transition aloud — does it flow?
+- [ ] Read every section transition — does it flow?
 - [ ] Check every figure/table is referenced in text
 - [ ] Check every technology/method mentioned has a citation
-- [ ] Verify no remaining CLI flags in body text (delay to appendix)
-- [ ] Verify no remaining GPT-isms: parenthetical headings, "blazingly fast", trailing summaries
-- [ ] Write the abstract (last — it summarizes the final paper)
+- [ ] Verify no remaining CLI flags in body text
+- [ ] Verify no remaining GPT-isms
+- [ ] Uncomment abstract in main.typ
+- [ ] Regenerate all figures with new data
+- [ ] Uncomment figure references in results.typ once figures exist

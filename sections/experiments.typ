@@ -35,25 +35,25 @@ The timing methodology follows established practices for GPU benchmarking @macza
 
 == Experiment Groups
 
-The experiments are organised into five groups, each targeting one or more research questions. @tab:experiment-matrix provides a summary.
+The experiments are organised into seven groups, each targeting one or more research questions or characterising numerical quality. @tab:experiment-matrix provides a summary.
 
 #figure(
   table(
     columns: (auto, auto, auto, auto, auto),
     align: (left, left, left, left, left),
     [*Group*], [*Scenario*], [*Variable*], [*Runs*], [*RQ*],
-    [1: Two-body validation], [A (two-body)], [$Delta t times$ integrator], [10], [RQ2],
+    [1: Two-body validation], [A (two-body)], [$Delta t times$ integrator], [10], [Qual.],
     [2a: N-scaling], [B (Plummer)], [$N in {100 "–" 10^5}$], [9], [RQ1, RQ3],
-    [2b: Theta sweep], [B (Plummer)], [$theta in {0.3, 0.5, 0.7, 1.0}$], [4], [RQ2],
-    [2c: Timestep sweep], [B (Plummer)], [$Delta t in {5 times 10^(-5) "–" 5 times 10^(-3)}$], [5], [RQ2],
-    [2e: Softening sweep], [B (Plummer)], [$epsilon in {0.1 "–" 2.0}$], [5], [RQ2],
+    [2b: Theta sweep], [B (Plummer)], [$theta in {0.3, 0.5, 0.7, 1.0}$], [4], [Qual.],
+    [2c: Timestep sweep], [B (Plummer)], [$Delta t in {5 times 10^(-5) "–" 5 times 10^(-3)}$], [5], [Qual.],
+    [2e: Softening sweep], [B (Plummer)], [$epsilon in {0.1 "–" 2.0}$], [5], [Qual.],
     [3a: Disk N-scaling], [C (disk)], [$N in {10^4 "–" 10^5}$], [5], [RQ1, RQ3],
     [4: Direct vs tree crossover], [B (Plummer)], [force method $times N$], [12], [RQ1],
     [5: Native vs browser], [B (Plummer)], [execution platform $times N$], [9], [RQ3],
-    [6: Cross-backend comparison], [B (Plummer)], [WebGPU impl $times N$], [12], [RQ3],
+    [6: Cross-backend comparison], [B (Plummer)], [WebGPU impl $times N$], [12], [RQ2, RQ3],
     [7: LBVH pass breakdown], [B (Plummer)], [per-pass timing $times N$], [5], [RQ1],
   ),
-  caption: [Summary of experiment groups, swept variables, and research questions addressed.],
+  caption: [Summary of experiment groups, swept variables, and targets. Qual. denotes numerical quality characterisation, reported as a secondary observation rather than a primary research question.],
 ) <tab:experiment-matrix>
 
 === Group 1: Two-Body Orbit Validation (Scenario A)
@@ -62,11 +62,11 @@ This group verifies integrator correctness using the two-body orbit configuratio
 
 === Group 2: Plummer Sphere Parameter Sweeps (Scenario B)
 
-The Plummer sphere scenario provides the primary quantitative testbed because it has symmetric initial conditions and known analytic equilibrium properties. Six sub-groups isolate individual parameter effects.
+The Plummer sphere scenario provides the primary quantitative testbed because it has symmetric initial conditions and known analytic equilibrium properties. Four sub-groups isolate individual parameter effects.
 
 Sub-group 2a (N-scaling) varies $N$ over ${100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000}$ with all other parameters fixed at defaults ($Delta t = 0.001$, $theta = 0.75$, $epsilon = 0.5$, leapfrog, GPU LBVH). Each run executes 1,000 steps. This sub-group directly addresses RQ1 (scalability) and RQ3 (feasibility at large $N$).
 
-Sub-groups 2b through 2e isolate the effects of individual parameters at fixed $N = 5000$ (chosen because potential energy is computed at this size, enabling full energy tracking). Sub-group 2b sweeps $theta in {0.3, 0.5, 0.7, 1.0}$; sub-group 2c sweeps $Delta t in {5 times 10^(-5), 10^(-4), 5 times 10^(-4), 10^(-3), 5 times 10^(-3)}$; and sub-group 2e sweeps $epsilon in {0.1, 0.25, 0.5, 1.0, 2.0}$. All parameter-sweep runs execute 5,000 steps.
+Sub-groups 2b, 2c, and 2e isolate the effects of individual parameters at fixed $N = 5000$ (chosen because potential energy is computed at this size, enabling full energy tracking). Sub-group 2b sweeps $theta in {0.3, 0.5, 0.7, 1.0}$; sub-group 2c sweeps $Delta t in {5 times 10^(-5), 10^(-4), 5 times 10^(-4), 10^(-3), 5 times 10^(-3)}$; and sub-group 2e sweeps $epsilon in {0.1, 0.25, 0.5, 1.0, 2.0}$. All parameter-sweep runs execute 5,000 steps.
 
 === Group 3: Rotating Disk Scaling (Scenario C)
 
