@@ -72,7 +72,7 @@ All GPU kernels run in 32-bit floating point, which maximises throughput and mat
 
 == Time Integration
 
-We integrate with a fixed-timestep, second-order symplectic leapfrog in kick–drift–kick (KDK) form @verlet1967. In what follows, the superscript $n$ denotes the timestep index, and $bold(r)_i^n$, $bold(v)_i^n$, $bold(a)_i^n$ are the position, velocity, and acceleration of particle $i$ at step $n$. With timestep $Delta t$ (default $10^(-4)$), the update has three stages. A half-kick advances velocities by half a step using the current accelerations:
+We integrate with a fixed-timestep, second-order symplectic leapfrog in kick–drift–kick (KDK) form @verlet1967. In what follows, the superscript $n$ denotes the timestep index, and $bold(r)_i^n$, $bold(v)_i^n$, $bold(a)_i^n$ are the position, velocity, and acceleration of particle $i$ at step $n$. With timestep $Delta t$ (default $10^(-3)$), the update has three stages. A half-kick advances velocities by half a step using the current accelerations:
 #math.equation(
   $
     bold(v)_i^(n+1\/2) = bold(v)_i^(n) + frac(Delta t, 2) bold(a)_i^n
@@ -113,7 +113,7 @@ An internal node is accepted as a monopole when it is sufficiently small relativ
 
 #figure(
   image("../graphics/fig_opening_criterion.png", width: 100%),
-  caption: [Geometry of the opening criterion. A node is approximated as a monopole when its angular size, as measured by extent/$d$, falls below the threshold $theta$. Left: BVH variant using maximum AABB extent. Right: octree variant using cell half-width.],
+  caption: [Geometry of the opening criterion. A node is approximated as a monopole when its angular size, as measured by extent/$d$, falls below the threshold $theta$. Left: BVH variant using maximum AABB extent (this work). Right: classical octree variant using cell half-width, shown for comparison with the literature.],
 ) <fig:opening-criterion>
 
 == Software Architecture and Execution Modes
@@ -126,11 +126,11 @@ All physics — integration, tree construction, force evaluation — runs on the
 
 Simulation state is stored in WebGPU storage buffers using the packed `vec4<f32>` layout described in @fig:particle-layout: positions (with mass in the $w$ component), velocities, and accelerations. The BVH is stored as a flat array of $2N - 1$ nodes, each containing a centre of mass, total mass, and axis-aligned bounding box. A uniform parameters buffer shares simulation parameters between host and shader code. In-place updates are used throughout: there is no double buffering of positions, velocities, or accelerations. Correct ordering between compute passes relies on WebGPU's implicit storage-buffer synchronisation between dispatches within a single command buffer submission. Bind groups are cached and reused across frames to avoid per-frame recreation overhead.
 
-The WGSL compute shaders fall into two groups: integration and force evaluation (direct-summation baseline and BVH traversal), and LBVH construction in seven passes @morton1966 @maximizeparallel. Workgroup sizes are tuned per kernel — 128 for force evaluation, 256 for integration and tree building — with the rationale discussed in the optimisation section below.
+The WGSL compute shaders fall into two groups: integration and force evaluation (direct-summation baseline and BVH traversal), and LBVH construction in six passes @morton1966 @maximizeparallel. Workgroup sizes are tuned per kernel — 128 for force evaluation, 256 for integration and tree building — with the rationale discussed in the optimisation section below.
 
 === Per-timestep execution sequence
 
-Each timestep is recorded into a single command encoder and submitted as one command buffer. The six sequential passes, illustrated in @fig:timestep-pipeline, are: (1) a half-kick that advances velocities by $Delta t \/ 2$ using the current accelerations; (2) a drift that advances positions by $Delta t$ using the half-stepped velocities; (3) a full LBVH rebuild comprising seven sub-passes (global AABB reduction, Morton code generation, radix sort, Karras topology construction, leaf initialisation, and bottom-up aggregation); (4) BVH force evaluation, in which each particle traverses the tree iteratively using a fixed-depth explicit stack (depth 64, sufficient for all tested $N$); (5) a second half-kick that completes the velocity update; and (6) an optional diagnostics readback at configurable intervals, in which positions and velocities are copied to the CPU via staging buffers for double-precision energy and momentum computation.
+Each timestep is recorded into a single command encoder and submitted as one command buffer. The six sequential passes, illustrated in @fig:timestep-pipeline, are: (1) a half-kick that advances velocities by $Delta t \/ 2$ using the current accelerations; (2) a drift that advances positions by $Delta t$ using the half-stepped velocities; (3) a full LBVH rebuild comprising six sub-passes (global AABB reduction, Morton code generation, radix sort, Karras topology construction, leaf initialisation, and bottom-up aggregation); (4) BVH force evaluation, in which each particle traverses the tree iteratively using a fixed-depth explicit stack (depth 64, sufficient for all tested $N$); (5) a second half-kick that completes the velocity update; and (6) an optional diagnostics readback at configurable intervals, in which positions and velocities are copied to the CPU via staging buffers for double-precision energy and momentum computation.
 
 #include "fig_pipeline.typ"
 
@@ -140,7 +140,7 @@ Because GPU compute shaders do not support recursion, tree traversal is implemen
 
 === GPU LBVH construction
 
-The Linear Bounding Volume Hierarchy is built fully on the GPU each timestep, following the parallel construction method of Karras @maximizeparallel. The construction proceeds through seven compute dispatches, illustrated in @fig:lbvh-pipeline:
+The Linear Bounding Volume Hierarchy is built fully on the GPU each timestep, following the parallel construction method of Karras @maximizeparallel. The construction proceeds through six compute dispatches, illustrated in @fig:lbvh-pipeline:
 
 + *Global bounding box reduction.* A two-pass parallel reduction over all particle positions computes the axis-aligned bounding box of the entire system. This bounding box defines the coordinate range used to normalise positions in the next step.
 
@@ -151,7 +151,7 @@ The Linear Bounding Volume Hierarchy is built fully on the GPU each timestep, fo
   caption: [Spatial binning via a Z-order (Morton) space-filling curve in 2D. The dotted red line traces the curve through the grid; after sorting by Morton code, spatially adjacent particles are stored contiguously in the sorted array (right). Adapted from Peláez @pelaez_thesis.],
 ) <fig:morton-binning>
 
-+ *Radix sort.* The Morton codes and their associated particle indices are sorted into ascending order using a parallel radix sort. The radix sort processes the 30-bit keys in fixed-width digit passes (4 bits per pass), performing a prefix-sum histogram within each pass to determine output positions. This approach was chosen over the bitonic sort network @batcher1968 used in an earlier version of the implementation, because radix sort achieves $O(N)$ work complexity for fixed-width keys and scales more predictably on GPU hardware. An alternative is the onesweep radix sort, which is the most performant variant on native GPU APIs, but its reliance on fine-grained device-scope atomic operations makes it difficult to implement efficiently in WebGPU, where atomics are limited to workgroup and storage-buffer scope.
++ *Radix sort.* The Morton codes and their associated particle indices are sorted into ascending order using a parallel radix sort. The radix sort processes the 32-bit keys in four passes (8 bits per pass), performing a prefix-sum histogram within each pass to determine output positions. This approach was chosen over the bitonic sort network @batcher1968 used in an earlier version of the implementation, because radix sort achieves $O(N)$ work complexity for fixed-width keys and scales more predictably on GPU hardware. An alternative is the onesweep radix sort, which is the most performant variant on native GPU APIs, but its reliance on fine-grained device-scope atomic operations makes it difficult to implement efficiently in WebGPU, where atomics are limited to workgroup and storage-buffer scope.
 
 + *Karras topology construction.* The sorted Morton codes define a binary radix tree whose internal structure is determined entirely by the codes themselves. For each internal node $i$, the Karras algorithm computes a direction and range by examining the _delta function_ $delta(i, j)$, defined as the number of leading zero bits in the bitwise XOR of Morton codes $k_i$ and $k_j$. Two codes that share a long common prefix (high $delta$) correspond to particles that are spatially close, because their Morton codes agree on the most significant bits of their interleaved coordinates. The algorithm determines each internal node's children by finding the split position within its range where the common prefix length changes. Duplicate Morton codes (which arise when two particles fall in the same grid cell) are handled by appending the particle index as a tie-breaker to ensure a unique ordering @maximizeparallel.
 
@@ -165,11 +165,11 @@ The resulting BVH is immediately traversable without any CPU-side construction o
 
 == Force Traversal Optimisation
 
-Profiling showed that BVH force evaluation accounts for 95–99% of total step time at all tested $N$, with LBVH construction contributing less than 1% even at $N = 100000$. We therefore focused all optimisation effort on the traversal shader, applying four changes and benchmarking each independently before combining them.
+Profiling showed that BVH force evaluation accounts for 94–99% of total step time at all tested $N$, with LBVH construction contributing less than 1% even at $N = 100000$. We therefore focused all optimisation effort on the traversal shader, applying four changes and benchmarking each independently before combining them.
 
 The baseline traversal shader performs three operations per node visit: a full 64-byte struct read from global memory, an opening-criterion computation involving approximately 20 floating-point operations including transcendental functions, and a stack-based depth-first traversal with no spatial ordering. Each represents a different bottleneck class (memory bandwidth, ALU throughput, and cache efficiency respectively), and the optimisations target all three.
 
-*Precomputed opening radius.* The opening criterion depends only on node-intrinsic properties (centre of mass, AABB bounds, total mass) that are invariant across particle interactions. In the baseline, these are recomputed for every particle–node pair. The optimised version precomputes a scalar opening radius per node during the bottom-up aggregation pass and stores it in an otherwise unused field. This eliminates redundant computation across all particle interactions, yielding a 1.74$times$ speedup at $N = 100000$.
+*Precomputed opening radius.* The opening criterion depends only on node-intrinsic properties that are invariant across particle interactions. In the baseline, these are recomputed for every particle–node pair. The optimised version precomputes a scalar opening radius per node during the bottom-up aggregation pass, computed as $"halfExtent" = ||bold(R) - bold(c)|| dot (1 + 0.6 log_2(max(M, 1)))$ where $bold(R)$ is the centre of mass, $bold(c)$ is the nearest AABB corner, and $M$ is the node's total mass. The mass-adaptive scaling widens the opening radius for massive nodes, making the traversal more conservative (and more accurate) where gravitational influence is strongest. The precomputed radius is stored in an otherwise unused field, and the per-interaction test reduces to a single distance comparison $d^2 > r^2$. This eliminates redundant computation across all particle interactions, yielding a 1.74$times$ speedup at $N = 100000$.
 
 *Compact traversal nodes.* The force shader reads a 64-byte BVH node per visit but uses only 28 bytes (centre of mass, opening radius, child indices). A compaction pass copies these fields into a 32-byte traversal buffer, reducing memory bandwidth per node visit. This provides an additional 3% improvement at large $N$.
 
