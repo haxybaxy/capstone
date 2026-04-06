@@ -151,7 +151,7 @@ The timestep sweep at $N = 5000$ reveals that energy drift increases with simula
 
 === Effect of Softening $epsilon$
 
-The softening sweep at $N = 5000$ shows a modest increase in energy drift with larger $epsilon$: from $Delta E / |E(0)| = 1.82$ at $epsilon = 0.1$ to $2.00$ at $epsilon = 2.0$. Larger softening reduces the depth of the gravitational potential well, making the system less tightly bound and more prone to expansion. Runtime is unaffected by softening (approximately 3.5 ms/step for all values), confirming that softening does not change the computational cost of force evaluation.
+The softening sweep at $N = 5000$ shows a modest increase in energy drift with larger $epsilon$: from $Delta E / ( |E(0)| ) = 1.82$ at $epsilon = 0.1$ to $2.00$ at $epsilon = 2.0$. Larger softening reduces the depth of the gravitational potential well, making the system less tightly bound and more prone to expansion. Runtime is unaffected by softening (approximately 3.5 ms/step for all values), confirming that softening does not change the computational cost of force evaluation.
 
 === Momentum Conservation
 
