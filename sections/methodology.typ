@@ -167,10 +167,7 @@ The Linear Bounding Volume Hierarchy is built fully on the GPU each timestep, fo
 
 The resulting BVH is immediately traversable without any CPU-side construction or data upload, eliminating what would otherwise be a per-step CPU–GPU transfer bottleneck.
 
-#figure(
-  image("../graphics/fig_lbvh_pipeline.png", width: 45%),
-  caption: [LBVH construction pipeline. Seven compute dispatches build the tree entirely on-device. Each arrow represents an implicit storage-buffer barrier. The atomic-counter aggregation in pass 6 ensures correct bottom-up propagation of bounding boxes and centers of mass.],
-) <fig:lbvh-pipeline>
+#include "fig_lbvh_pipeline.typ"
 
 == Force Traversal Optimisation
 
