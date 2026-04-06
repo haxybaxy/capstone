@@ -12,24 +12,24 @@ The gravitational N-body problem is central to galactic dynamics: model a galaxy
 
 #math.equation(
   $
-    arrow(F)_(i j) =
+    bold(F)_(i j) =
     G frac(
-      m_i m_j (arrow(r)_j - arrow(r)_i)
+      m_i m_j (bold(r)_j - bold(r)_i)
       ,
-      |arrow(r)_j - arrow(r)_i|^3
+      |bold(r)_j - bold(r)_i|^3
     )
   $,
 )
 
-where $G$ is the gravitational constant, $m_i$ and $m_j$ are the particle masses, and $arrow(r)_i$ and $arrow(r)_j$ are their positions. The cube of the distance in the denominator combines the inverse-square magnitude with a unit direction vector. Summing over all other particles gives the total force on particle $i$:
+where $G$ is the gravitational constant, $m_i$ and $m_j$ are the particle masses, and $bold(r)_i$ and $bold(r)_j$ are their positions. The cube of the distance in the denominator combines the inverse-square magnitude with a unit direction vector. Summing over all other particles gives the total force on particle $i$:
 
 #math.equation(
   $
-    arrow(F)_i =
+    bold(F)_i =
     sum_(j != i)^N
     G frac(
-      m_i m_j (arrow(r)_j - arrow(r)_i),
-      |arrow(r)_j - arrow(r)_i|^3
+      m_i m_j (bold(r)_j - bold(r)_i),
+      |bold(r)_j - bold(r)_i|^3
     )
   $,
 )
@@ -49,15 +49,15 @@ In scientific galaxy simulations, force evaluation is only half the problem. Acc
 
 #math.equation(
   $
-    sum_(j)arrow(F)_(i j) = m_i arrow(a)_i
+    sum_(j)bold(F)_(i j) = m_i bold(a)_i
   $,
 )
 
-Where $arrow(a)_i$ is the acceleration of the particle $i$. The acceleration is related to the particle velocity and position through time derivatives,
+Where $bold(a)_i$ is the acceleration of the particle $i$. The acceleration is related to the particle velocity and position through time derivatives,
 
 #math.equation(
   $
-    arrow(a)_i = frac(d arrow(v)_i, d t) ,#h(1cm) arrow(v)_i = frac(d arrow(r)_i, d t)
+    bold(a)_i = frac(d bold(v)_i, d t) ,#h(1cm) bold(v)_i = frac(d bold(r)_i, d t)
   $,
 )
 
@@ -66,11 +66,11 @@ For systems of many interacting particles these equations have no closed-form so
 The simplest scheme is the forward Euler integrator @Kreyszig2011, which updates the positions of the particles using the current velocity:
 #math.equation(
   $
-    arrow(r)_(i)^(n+1) = arrow(r)_(i)^(n) + arrow(v)_(i)^(n) Delta t
+    bold(r)_(i)^(n+1) = bold(r)_(i)^(n) + bold(v)_(i)^(n) Delta t
   $,
 )
 
-Here the superscript $n$ denotes the discrete timestep, with $arrow(r)_(i)^(0)$ the initial position. Velocities are updated the same way using the current acceleration. Euler is cheap and easy to implement, but it does not conserve energy, as errors accumulate and the simulation drifts into unphysical states over long runs.
+Here the superscript $n$ denotes the discrete timestep, with $bold(r)_(i)^(0)$ the initial position. Velocities are updated the same way using the current acceleration. Euler is cheap and easy to implement, but it does not conserve energy, as errors accumulate and the simulation drifts into unphysical states over long runs.
 
 Astrophysical N-body codes therefore use symplectic integrators such as Verlet or leapfrog, which preserve the Hamiltonian structure of the equations of motion. These schemes conserve energy far better over long timescales, making them the standard choice for galactic dynamics @springel_2005.
 
