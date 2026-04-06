@@ -154,7 +154,7 @@ The Linear Bounding Volume Hierarchy is built fully on the GPU each timestep, fo
 + *Morton code generation.* Each particle's position is normalised to a $[0, 1023]^3$ integer grid within the global bounding box, and the three 10-bit integer coordinates are interleaved to produce a single 30-bit Morton code @morton1966. The Morton code maps a three-dimensional position to a one-dimensional index along a Z-order (Morton) space-filling curve, so that particles that are spatially close in 3D tend to receive numerically similar codes. @fig:morton-binning illustrates this principle in two dimensions: the Z-curve (red dashed line) visits grid cells in an order that preserves spatial locality, so that after sorting by Morton code, particles in the same cell are stored contiguously in the sorted array. The same principle extends to three dimensions with octant interleaving.
 
 #figure(
-  image("../graphics/morton-diagram.png", width: 70%),
+  image("../graphics/mortoncode.png", width: 70%),
   caption: [Spatial binning via a Z-order (Morton) space-filling curve in 2D. The dotted red line traces the curve through the grid; after sorting by Morton code, spatially adjacent particles are stored contiguously in the sorted array (right). Adapted from Peláez @pelaez_thesis.],
 ) <fig:morton-binning>
 
