@@ -15,8 +15,6 @@ Everything you need to do, organized by priority. Check off as you go.
 - [x] **Group 6 — Four-way backend comparison**: wgpu-native, Dawn, Chrome, Safari at N={1000, 10000, 100000}
 - [x] **Group 7 — Per-pass LBVH timing**: 7 sub-passes at N={1000, 5000, 10000, 50000, 100000}
 - [ ] **WASM overhead decomposition**: Break down browser overhead into GPU kernel vs API vs asyncify
-- [x] **Metal baseline (UniSim)**: Matched params at N={1000, 5000, 10000, 50000, 100000}
-- [x] **N-scaling re-run**: Proper protocol (50 warmup, 100 measured) with new optimized code
 
 ### Fix Existing Figures — REGENERATE ALL WITH NEW DATA
 
@@ -29,66 +27,6 @@ Everything you need to do, organized by priority. Check off as you go.
 ---
 
 ## 2. PAPER TEXT EDITS
-
-### Done — Content Additions
-
-- [x] Explained what a Plummer sphere is
-- [x] Rewrote LBVH construction with radix sort, elaborated Karras delta function
-- [x] Added explicit M and center of mass formulas
-- [x] Proper symbol introductions for leapfrog equations
-- [x] Made all quantities vectorial (bold vectors)
-- [x] Explained Emscripten flags (-sASYNCIFY, -sALLOW_MEMORY_GROWTH)
-- [x] SoA vs AoS resolved (packed layout is optimal — force shader never reads particle mass)
-- [x] Re-introduced RQ concept at start of results
-- [x] Added benchmarking protocol section (warmup, mean±std, CI, CV)
-- [x] Added Group 6 and Group 7 experiment descriptions
-- [x] Added Maczan citation in lit review, results, and eval protocol
-- [x] Added Force Traversal Optimisation section (4 optimisations + 2 rejected + combined table)
-- [x] Added GPU synchronisation details (wgpuDevicePoll vs buffer-map fence vs emscripten_sleep)
-- [x] Updated research questions to match new focus (scalability, abstraction overhead, browser feasibility)
-- [x] Updated evaluation protocol (Metal baseline, not Euler/CPU)
-- [x] Updated experimental platform table (16GB, Chrome/Safari versions, Dawn, UniSim)
-- [x] Added UniSim citation (original + fork)
-- [x] Added Maczan to lit review
-- [x] Added supervisor's Morton code Z-curve figure with thesis citation
-- [x] Wrote the abstract
-- [x] Results section fully rewritten with new data
-
-### Done — Content Removals
-
-- [x] Removed internal variable names (cpuPositions\_ etc)
-- [x] Removed CLI flags from body text
-- [x] Removed "stage-map-readback" vague line
-- [x] Removed verbose logging/dependency descriptions
-- [x] Cut "Validation and Robustness" section
-- [x] Cut "Reproducibility and Traceability" to one sentence
-- [x] Cut "Comparative Positioning" from methodology
-- [x] Cut Group 2d (Euler vs Leapfrog comparison)
-- [x] Cut CPU tree and direct rows from old performance table
-- [x] Removed seed robustness as a limitation
-- [x] Removed all CPU octree references from methodology
-- [x] Removed Euler integrator section
-- [x] Removed CPU execution mode / mirror arrays
-- [x] Removed system architecture figure (referenced CPU paths)
-
-### Done — Structural
-
-- [x] Merged sub-sections into flowing prose
-- [x] Added intro paragraphs after section headings
-- [x] Removed GPT-ism parenthetical headings
-- [x] Rewrote limitations as flowing paragraphs
-- [x] Tightened "Integrated Assessment" → "Summary of Findings"
-- [x] Compressed rendering section
-- [x] Compressed shader enumeration
-- [x] Compressed two-body results
-- [x] Merged softening + momentum into one subsection
-- [x] Rewrote discussion to interpret rather than restate
-
-### Done — Diagrams
-
-- [x] Timestep pipeline diagram (fletcher, fig_pipeline.typ)
-- [x] LBVH pipeline diagram (fletcher, fig_lbvh_pipeline.typ)
-- [x] Morton code Z-curve figure (from supervisor's thesis)
 
 ### Still TODO — Content
 
