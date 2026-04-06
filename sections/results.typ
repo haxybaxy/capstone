@@ -2,7 +2,7 @@
 = Results and Analysis
 #set heading(numbering: "1.1")
 
-This section presents the empirical results from the experiment groups defined in the previous section, organised by research question. All timing values are mean milliseconds per step computed after discarding the first ten steps as warmup. Energy drift is reported as the final-step value $Delta E = |E(t) - E(0)| / |E(0)|$.
+This section presents the empirical results from the experiment groups defined in the previous section, organised by research question. All timing values are mean milliseconds per step computed after discarding the first ten steps as warmup. Energy drift is reported as the final-step value $Delta E = (|E(t) - E(0)|) / ( |E(0)| )$.
 
 == Performance Overview
 
@@ -103,7 +103,7 @@ The two-body orbit provides the simplest test of integrator correctness. @tab:tw
     [0.005], [$1.99$], [$1.12 times 10^(-5)$],
     [0.01], [$1.99$], [$3.81 times 10^(-6)$],
   ),
-  caption: [Final energy drift $Delta E / |E(0)|$ after 50,000 steps for the two-body orbit (Scenario A). The difference between integrators is dominated by the force computation precision: GPU BVH (32-bit) versus CPU octree (64-bit).],
+  caption: [Final energy drift $Delta E / ( |E(0)| )$ after 50,000 steps for the two-body orbit (Scenario A). The difference between integrators is dominated by the force computation precision: GPU BVH (32-bit) versus CPU octree (64-bit).],
 ) <tab:twobody-drift>
 
 For very small $N$, the 32-bit precision of GPU computation is the binding constraint on numerical quality, not the integration scheme. The two-body scenario remains useful as a code-path sanity check (both paths complete without NaN or divergence), but quantitative energy-conservation comparisons between integrators require the same force computation path.
@@ -119,7 +119,7 @@ For very small $N$, the 32-bit precision of GPU computation is the binding const
 
 The Plummer sphere at $N = 5000$ (where potential energy is computed via direct pair summation) provides the primary testbed for energy conservation. @fig:energy-drift-plummer shows the evolution of energy drift over 5,000 steps.
 
-The leapfrog integrator at default parameters ($Delta t = 0.001$, $theta = 0.75$) produces a final drift of $Delta E / |E(0)| = 1.84$ after 5,000 steps (simulation time $t = 5.0$). Inspection of the energy components reveals that kinetic energy remains nearly constant ($K approx 744233$) while the potential energy magnitude decreases steadily from $-1.47 times 10^6$ to $-5.72 times 10^5$, indicating that the Plummer sphere is expanding. This behaviour is characteristic of a system that is not in perfect virial equilibrium at the discrete $N$ used, combined with the systematic force error introduced by the monopole approximation at $theta = 0.75$. The total energy transitions from negative to positive, reflecting an unbinding process that is physical in the context of finite-$N$ sampling with approximate forces.
+The leapfrog integrator at default parameters ($Delta t = 0.001$, $theta = 0.75$) produces a final drift of $Delta E / (|E(0)|) = 1.84$ after 5,000 steps (simulation time $t = 5.0$). Inspection of the energy components reveals that kinetic energy remains nearly constant ($K approx 744233$) while the potential energy magnitude decreases steadily from $-1.47 times 10^6$ to $-5.72 times 10^5$, indicating that the Plummer sphere is expanding. This behaviour is characteristic of a system that is not in perfect virial equilibrium at the discrete $N$ used, combined with the systematic force error introduced by the monopole approximation at $theta = 0.75$. The total energy transitions from negative to positive, reflecting an unbinding process that is physical in the context of finite-$N$ sampling with approximate forces.
 
 The Euler integrator at the same $N$ and $Delta t$ produces a substantially lower final drift of $9.28 times 10^(-3)$, again attributable to the 64-bit CPU force computation path rather than intrinsic integrator quality.
 
@@ -130,7 +130,7 @@ The Euler integrator at the same $N$ and $Delta t$ produces a substantially lowe
 
 === Effect of Opening Angle $theta$
 
-@tab:theta-sweep presents the effect of the opening angle on both runtime and energy drift at $N = 5000$. Surprisingly, the final energy drift is nearly identical across all tested $theta$ values ($Delta E / |E(0)| approx 1.84$), suggesting that at this $N$ and simulation duration, the dominant source of energy non-conservation is not the multipole approximation error but rather the 32-bit force precision and finite-$N$ relaxation effects. Runtime is also stable across $theta$ values (3.5 to 3.7 ms/step), indicating that at $N = 5000$ the traversal depth does not vary substantially with $theta$ on this hardware.
+@tab:theta-sweep presents the effect of the opening angle on both runtime and energy drift at $N = 5000$. Surprisingly, the final energy drift is nearly identical across all tested $theta$ values ($Delta E / ( |E(0)|  )approx 1.84$), suggesting that at this $N$ and simulation duration, the dominant source of energy non-conservation is not the multipole approximation error but rather the 32-bit force precision and finite-$N$ relaxation effects. Runtime is also stable across $theta$ values (3.5 to 3.7 ms/step), indicating that at $N = 5000$ the traversal depth does not vary substantially with $theta$ on this hardware.
 
 #figure(
   table(
