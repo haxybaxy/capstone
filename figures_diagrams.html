@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Capstone Paper Diagrams</title>
+<style>
+  body {
+    font-family: "Times New Roman", Times, serif;
+    background: #fff;
+    color: #222;
+    max-width: 900px;
+    margin: 2em auto;
+    padding: 0 1em;
+  }
+  h1 { font-size: 1.5em; border-bottom: 1px solid #ccc; padding-bottom: .3em; }
+  h2 { font-size: 1.15em; margin-top: 2.5em; color: #444; }
+  .fig-container {
+    text-align: center;
+    margin: 1.5em 0;
+    page-break-inside: avoid;
+  }
+  svg { background: #fff; }
+  .caption {
+    font-size: 0.9em;
+    color: #555;
+    margin-top: 0.5em;
+    font-style: italic;
+  }
+  .save-btn {
+    margin-top: 0.5em;
+    padding: 0.4em 1em;
+    font-size: 0.85em;
+    font-family: inherit;
+    background: #f1f5f9;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .save-btn:hover { background: #e2e8f0; }
+  /* SVG text defaults */
+  svg text {
+    font-family: "Times New Roman", Times, serif;
+    fill: #222;
+  }
+</style>
+</head>
+<body>
+
+<h1>Architecture &amp; Flow Diagrams</h1>
+<p>Open in browser, then right-click each SVG &rarr; &ldquo;Save image as&rdquo; to export PNG, or use a screenshot tool.
+Each diagram has a white background for direct paper inclusion.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     Fig 6: Opening Criterion — BVH (AABB) vs Octree (half-width)
+     ═══════════════════════════════════════════════════════════════════ -->
+<h2>Fig 6: Opening Criterion</h2>
+<div class="fig-container">
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="340" viewBox="0 0 780 340">
+  <rect width="780" height="340" fill="white"/>
+  <defs>
+    <marker id="arrowR" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#ea580c" stroke-width="1"/>
+    </marker>
+    <marker id="arrowL" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+      <path d="M8,0 L0,3 L8,6" fill="none" stroke="#ea580c" stroke-width="1"/>
+    </marker>
+    <marker id="arrowR_g" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="none" stroke="#16a34a" stroke-width="1"/>
+    </marker>
+    <marker id="arrowL_g" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+      <path d="M8,0 L0,3 L8,6" fill="none" stroke="#16a34a" stroke-width="1"/>
+    </marker>
+  </defs>
+
+  <!-- ── Left panel: BVH / AABB ── -->
+  <text x="195" y="25" text-anchor="middle" font-size="14" font-weight="bold">(a) BVH Node (AABB)</text>
+
+  <!-- Particle -->
+  <circle cx="80" cy="180" r="5" fill="#2563eb"/>
+  <text x="80" y="215" text-anchor="middle" font-size="11" fill="#2563eb">particle <tspan font-style="italic">i</tspan></text>
+
+  <!-- AABB node -->
+  <rect x="240" y="130" width="80" height="80" fill="none" stroke="#ea580c" stroke-width="2" rx="2"/>
+  <circle cx="280" cy="170" r="3" fill="#ea580c"/>
+
+  <!-- Extent label s (arrows spanning node width) -->
+  <line x1="240" y1="118" x2="320" y2="118" stroke="#ea580c" stroke-width="1" marker-start="url(#arrowL)" marker-end="url(#arrowR)"/>
+  <text x="280" y="112" text-anchor="middle" font-size="11" font-style="italic" fill="#ea580c">s (AABB extent)</text>
+
+  <!-- Sightline to top edge (dashed) -->
+  <line x1="80" y1="180" x2="240" y2="130" stroke="#555" stroke-width="1" stroke-dasharray="5,3"/>
+  <!-- Sightline to bottom edge (dashed) -->
+  <line x1="80" y1="180" x2="240" y2="210" stroke="#555" stroke-width="1" stroke-dasharray="5,3"/>
+
+  <!-- Distance line d (solid, to node center) -->
+  <line x1="85" y1="180" x2="275" y2="170" stroke="#333" stroke-width="1.5"/>
+  <text x="175" y="168" text-anchor="middle" font-size="12" font-style="italic">d</text>
+
+  <!-- Theta arc between sightlines -->
+  <path d="M 123,166 A 45,45 0 0,1 124,189" fill="none" stroke="#666" stroke-width="1.2"/>
+  <text x="118" y="157" font-size="12" fill="#666">&theta;</text>
+
+  <!-- Criterion -->
+  <text x="195" y="270" text-anchor="middle" font-size="12">Open if <tspan font-style="italic">s / d</tspan> &lt; <tspan font-style="italic">&theta;</tspan></text>
+  <text x="195" y="290" text-anchor="middle" font-size="11" fill="#666">(<tspan font-style="italic">s</tspan> = max AABB extent)</text>
+
+  <!-- Divider -->
+  <line x1="390" y1="15" x2="390" y2="320" stroke="#ccc" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- ── Right panel: Octree / half-width ── -->
+  <text x="585" y="25" text-anchor="middle" font-size="14" font-weight="bold">(b) Octree Node</text>
+
+  <!-- Particle -->
+  <circle cx="470" cy="180" r="5" fill="#2563eb"/>
+  <text x="470" y="215" text-anchor="middle" font-size="11" fill="#2563eb">particle <tspan font-style="italic">i</tspan></text>
+
+  <!-- Octree cell (square) -->
+  <rect x="620" y="130" width="80" height="80" fill="none" stroke="#16a34a" stroke-width="2"/>
+  <!-- Center dot -->
+  <circle cx="660" cy="170" r="3" fill="#16a34a"/>
+
+  <!-- Half-width label h (center to right edge) -->
+  <line x1="660" y1="120" x2="700" y2="120" stroke="#16a34a" stroke-width="1" marker-start="url(#arrowL_g)" marker-end="url(#arrowR_g)"/>
+  <text x="680" y="114" text-anchor="middle" font-size="11" font-style="italic" fill="#16a34a">h</text>
+
+  <!-- Sightline to top edge (dashed) -->
+  <line x1="470" y1="180" x2="620" y2="130" stroke="#555" stroke-width="1" stroke-dasharray="5,3"/>
+  <!-- Sightline to bottom edge (dashed) -->
+  <line x1="470" y1="180" x2="620" y2="210" stroke="#555" stroke-width="1" stroke-dasharray="5,3"/>
+
+  <!-- Distance line d (solid, to node center) -->
+  <line x1="475" y1="180" x2="655" y2="170" stroke="#333" stroke-width="1.5"/>
+  <text x="560" y="168" text-anchor="middle" font-size="12" font-style="italic">d</text>
+
+  <!-- Theta arc between sightlines -->
+  <path d="M 513,166 A 45,45 0 0,1 514,189" fill="none" stroke="#666" stroke-width="1.2"/>
+  <text x="508" y="157" font-size="12" fill="#666">&theta;</text>
+
+  <!-- Criterion -->
+  <text x="585" y="270" text-anchor="middle" font-size="12">Open if <tspan font-style="italic">h / d</tspan> &lt; <tspan font-style="italic">&theta;</tspan></text>
+  <text x="585" y="290" text-anchor="middle" font-size="11" fill="#666">(<tspan font-style="italic">h</tspan> = cell half-width)</text>
+</svg>
+<div class="caption">Figure 6: Node opening criterion. (a) BVH uses maximum AABB extent <em>s</em>.
+(b) Traditional octree uses cell half-width <em>h</em>. Both compare <em>s/d</em> (or <em>h/d</em>) against threshold &theta;.</div>
+<button class="save-btn" onclick="savePng(this, 'fig_opening_criterion.png')">Save as PNG</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     Fig 7: System Architecture
+     ═══════════════════════════════════════════════════════════════════ -->
+<h2>Fig 7: System Architecture</h2>
+<div class="fig-container">
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="480" viewBox="0 0 720 480">
+  <rect width="720" height="480" fill="white"/>
+  <defs>
+    <marker id="aDown" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8" fill="#333"/>
+    </marker>
+    <marker id="aDownDash" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8" fill="#999"/>
+    </marker>
+    <marker id="aRight" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8" fill="#333"/>
+    </marker>
+  </defs>
+
+  <!-- C++ Host Orchestration -->
+  <rect x="200" y="20" width="320" height="44" rx="6" fill="#e0e7ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="360" y="47" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e40af">C++ Host Orchestration</text>
+
+  <!-- Arrow down -->
+  <line x1="360" y1="64" x2="360" y2="95" stroke="#333" stroke-width="2" marker-end="url(#aDown)"/>
+
+  <!-- WebGPU Compute Dispatch -->
+  <rect x="200" y="100" width="320" height="44" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="360" y="127" text-anchor="middle" font-size="13" font-weight="bold" fill="#92400e">WebGPU Compute Dispatch</text>
+
+  <!-- Arrow down -->
+  <line x1="360" y1="144" x2="360" y2="175" stroke="#333" stroke-width="2" marker-end="url(#aDown)"/>
+
+  <!-- GPU Storage Buffers (large box with sub-items) -->
+  <rect x="120" y="180" width="480" height="100" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="360" y="202" text-anchor="middle" font-size="13" font-weight="bold" fill="#166534">GPU Storage Buffers</text>
+  <!-- Sub-boxes -->
+  <rect x="140" y="212" width="100" height="30" rx="4" fill="white" stroke="#16a34a" stroke-width="1"/>
+  <text x="190" y="232" text-anchor="middle" font-size="10">Positions</text>
+  <rect x="250" y="212" width="100" height="30" rx="4" fill="white" stroke="#16a34a" stroke-width="1"/>
+  <text x="300" y="232" text-anchor="middle" font-size="10">Velocities</text>
+  <rect x="360" y="212" width="110" height="30" rx="4" fill="white" stroke="#16a34a" stroke-width="1"/>
+  <text x="415" y="232" text-anchor="middle" font-size="10">Accelerations</text>
+  <rect x="480" y="212" width="100" height="30" rx="4" fill="white" stroke="#16a34a" stroke-width="1"/>
+  <text x="530" y="232" text-anchor="middle" font-size="10">BVH Nodes</text>
+
+  <!-- Label: GPU-primary path -->
+  <text x="95" y="155" text-anchor="end" font-size="10" fill="#333">GPU-primary</text>
+  <text x="95" y="167" text-anchor="end" font-size="10" fill="#333">path (solid)</text>
+
+  <!-- Rendering branch (right side) -->
+  <line x1="600" y1="230" x2="660" y2="230" stroke="#333" stroke-width="2" marker-end="url(#aRight)"/>
+  <rect x="662" y="210" width="50" height="40" rx="4" fill="#fae8ff" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="687" y="225" text-anchor="middle" font-size="9" fill="#7e22ce">Render</text>
+  <text x="687" y="238" text-anchor="middle" font-size="9" fill="#7e22ce">Pipeline</text>
+
+  <!-- Arrow down from GPU buffers -->
+  <line x1="360" y1="280" x2="360" y2="315" stroke="#999" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#aDownDash)"/>
+
+  <!-- Staging Buffer Readback -->
+  <rect x="200" y="320" width="320" height="44" rx="6" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="360" y="347" text-anchor="middle" font-size="13" fill="#854d0e">Staging Buffer Readback</text>
+
+  <!-- Arrow down (dashed) -->
+  <line x1="360" y1="364" x2="360" y2="395" stroke="#999" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#aDownDash)"/>
+
+  <!-- CPU Mirror Arrays -->
+  <rect x="200" y="400" width="320" height="44" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="360" y="427" text-anchor="middle" font-size="13" fill="#475569">CPU Mirror Arrays (Diagnostics)</text>
+
+  <!-- Legend -->
+  <line x1="40" y1="430" x2="80" y2="430" stroke="#333" stroke-width="2"/>
+  <text x="88" y="434" font-size="10" fill="#333">GPU-primary path</text>
+  <line x1="40" y1="450" x2="80" y2="450" stroke="#999" stroke-width="2" stroke-dasharray="6,4"/>
+  <text x="88" y="454" font-size="10" fill="#666">Readback / fallback</text>
+</svg>
+<div class="caption">Figure 7: System architecture. Solid arrows show the GPU-primary data path; dashed arrows indicate periodic staging-buffer readback for CPU-side diagnostics. The rendering pipeline reads directly from GPU storage buffers.</div>
+<button class="save-btn" onclick="savePng(this, 'fig_system_architecture.png')">Save as PNG</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     Fig 8: Timestep Pipeline (Leapfrog KDK)
+     ═══════════════════════════════════════════════════════════════════ -->
+<h2>Fig 8: Timestep Pipeline</h2>
+<div class="fig-container">
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="680" viewBox="0 0 480 680">
+  <rect width="480" height="680" fill="white"/>
+  <defs>
+    <marker id="ad" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8" fill="#333"/>
+    </marker>
+    <marker id="adGray" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8" fill="#999"/>
+    </marker>
+  </defs>
+
+  <!-- Step boxes: y positions at 30, 120, 210, (LBVH expanded 210-430), 470, 540, 610 -->
+
+  <!-- 1. Half Kick -->
+  <rect x="140" y="20" width="200" height="46" rx="22" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="240" y="48" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e40af">&frac12; Kick</text>
+  <text x="240" y="80" text-anchor="middle" font-size="10" fill="#666">v &larr; v + &frac12; a &Delta;t</text>
+
+  <!-- Arrow -->
+  <line x1="240" y1="86" x2="240" y2="105" stroke="#333" stroke-width="2" marker-end="url(#ad)"/>
+
+  <!-- 2. Drift -->
+  <rect x="140" y="110" width="200" height="46" rx="22" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="240" y="138" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e40af">Drift</text>
+  <text x="240" y="170" text-anchor="middle" font-size="10" fill="#666">x &larr; x + v &Delta;t</text>
+
+  <!-- Arrow -->
+  <line x1="240" y1="176" x2="240" y2="195" stroke="#333" stroke-width="2" marker-end="url(#ad)"/>
+
+  <!-- 3. LBVH Build (expanded) -->
+  <rect x="80" y="200" width="320" height="230" rx="8" fill="#fefce8" stroke="#ca8a04" stroke-width="2"/>
+  <text x="240" y="222" text-anchor="middle" font-size="13" font-weight="bold" fill="#854d0e">LBVH Build</text>
+
+  <!-- Sub-passes inside LBVH -->
+  <rect x="110" y="234" width="260" height="24" rx="4" fill="white" stroke="#d97706" stroke-width="1"/>
+  <text x="240" y="250" text-anchor="middle" font-size="10">1. Global AABB Reduction</text>
+
+  <rect x="110" y="264" width="260" height="24" rx="4" fill="white" stroke="#d97706" stroke-width="1"/>
+  <text x="240" y="280" text-anchor="middle" font-size="10">2. Morton Code Generation</text>
+
+  <rect x="110" y="294" width="260" height="24" rx="4" fill="white" stroke="#d97706" stroke-width="1"/>
+  <text x="240" y="310" text-anchor="middle" font-size="10">3. Bitonic Sort</text>
+
+  <rect x="110" y="324" width="260" height="24" rx="4" fill="white" stroke="#d97706" stroke-width="1"/>
+  <text x="240" y="340" text-anchor="middle" font-size="10">4. Karras Topology Construction</text>
+
+  <rect x="110" y="354" width="260" height="24" rx="4" fill="white" stroke="#d97706" stroke-width="1"/>
+  <text x="240" y="370" text-anchor="middle" font-size="10">5. Leaf AABB Initialization</text>
+
+  <rect x="110" y="384" width="260" height="24" rx="4" fill="white" stroke="#d97706" stroke-width="1"/>
+  <text x="240" y="400" text-anchor="middle" font-size="10">6. Bottom-up AABB Propagation</text>
+
+  <!-- Arrow -->
+  <line x1="240" y1="430" x2="240" y2="455" stroke="#333" stroke-width="2" marker-end="url(#ad)"/>
+
+  <!-- 4. BVH Force -->
+  <rect x="140" y="460" width="200" height="46" rx="22" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="240" y="488" text-anchor="middle" font-size="13" font-weight="bold" fill="#166534">BVH Force</text>
+  <text x="240" y="520" text-anchor="middle" font-size="10" fill="#666">a &larr; F(tree) / m</text>
+
+  <!-- Arrow -->
+  <line x1="240" y1="526" x2="240" y2="545" stroke="#333" stroke-width="2" marker-end="url(#ad)"/>
+
+  <!-- 5. Half Kick -->
+  <rect x="140" y="550" width="200" height="46" rx="22" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="240" y="578" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e40af">&frac12; Kick</text>
+  <text x="240" y="610" text-anchor="middle" font-size="10" fill="#666">v &larr; v + &frac12; a &Delta;t</text>
+
+  <!-- Arrow (dashed for periodic) -->
+  <line x1="240" y1="616" x2="240" y2="635" stroke="#999" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#adGray)"/>
+
+  <!-- 6. Diagnostics Readback (dashed border = periodic) -->
+  <rect x="130" y="640" width="220" height="30" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="240" y="660" text-anchor="middle" font-size="11" fill="#64748b">Diagnostics Readback</text>
+  <text x="370" y="660" font-size="9" fill="#94a3b8">(periodic)</text>
+</svg>
+<div class="caption">Figure 8: Single-timestep pipeline (Leapfrog KDK). The LBVH build phase expands into six GPU compute passes separated by pipeline barriers. The dashed diagnostics readback occurs periodically, not every step.</div>
+<button class="save-btn" onclick="savePng(this, 'fig_timestep_pipeline.png')">Save as PNG</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     Fig 9: LBVH Construction Pipeline
+     ═══════════════════════════════════════════════════════════════════ -->
+<h2>Fig 9: LBVH Construction Pipeline</h2>
+<div class="fig-container">
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="580" viewBox="0 0 420 580">
+  <rect width="420" height="580" fill="white"/>
+  <defs>
+    <marker id="ad2" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8" fill="#333"/>
+    </marker>
+  </defs>
+
+  <!-- Pass boxes, each 46px tall, spaced 82px apart -->
+  <!-- 1. Global AABB Reduction -->
+  <rect x="80" y="20" width="260" height="46" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="210" y="42" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">Global AABB Reduction</text>
+  <text x="210" y="57" text-anchor="middle" font-size="10" fill="#64748b">parallel min/max over all positions</text>
+
+  <!-- Barrier + arrow -->
+  <line x1="210" y1="66" x2="210" y2="100" stroke="#333" stroke-width="2" marker-end="url(#ad2)"/>
+  <line x1="160" y1="83" x2="260" y2="83" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="280" y="87" font-size="9" fill="#d97706">barrier</text>
+
+  <!-- 2. Morton Code Generation -->
+  <rect x="80" y="105" width="260" height="46" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="210" y="127" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">Morton Code Generation</text>
+  <text x="210" y="142" text-anchor="middle" font-size="10" fill="#64748b">30-bit Z-order from normalized coords</text>
+
+  <!-- Barrier + arrow -->
+  <line x1="210" y1="151" x2="210" y2="185" stroke="#333" stroke-width="2" marker-end="url(#ad2)"/>
+  <line x1="160" y1="168" x2="260" y2="168" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="280" y="172" font-size="9" fill="#d97706">barrier</text>
+
+  <!-- 3. Bitonic Sort -->
+  <rect x="80" y="190" width="260" height="46" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="210" y="212" text-anchor="middle" font-size="12" font-weight="bold" fill="#92400e">Bitonic Sort</text>
+  <text x="210" y="227" text-anchor="middle" font-size="10" fill="#64748b">O(N log&sup2; N) GPU-friendly sort</text>
+
+  <!-- Barrier + arrow -->
+  <line x1="210" y1="236" x2="210" y2="270" stroke="#333" stroke-width="2" marker-end="url(#ad2)"/>
+  <line x1="160" y1="253" x2="260" y2="253" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="280" y="257" font-size="9" fill="#d97706">barrier</text>
+
+  <!-- 4. Karras Topology -->
+  <rect x="80" y="275" width="260" height="46" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="210" y="297" text-anchor="middle" font-size="12" font-weight="bold" fill="#166534">Karras Topology</text>
+  <text x="210" y="312" text-anchor="middle" font-size="10" fill="#64748b">internal node parent/child from sorted keys</text>
+
+  <!-- Barrier + arrow -->
+  <line x1="210" y1="321" x2="210" y2="355" stroke="#333" stroke-width="2" marker-end="url(#ad2)"/>
+  <line x1="160" y1="338" x2="260" y2="338" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="280" y="342" font-size="9" fill="#d97706">barrier</text>
+
+  <!-- 5. Leaf AABB Init -->
+  <rect x="80" y="360" width="260" height="46" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="210" y="382" text-anchor="middle" font-size="12" font-weight="bold" fill="#166534">Leaf Initialization</text>
+  <text x="210" y="397" text-anchor="middle" font-size="10" fill="#64748b">leaf bounding boxes from particle positions</text>
+
+  <!-- Barrier + arrow -->
+  <line x1="210" y1="406" x2="210" y2="440" stroke="#333" stroke-width="2" marker-end="url(#ad2)"/>
+  <line x1="160" y1="423" x2="260" y2="423" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="280" y="427" font-size="9" fill="#d97706">barrier</text>
+
+  <!-- 6. Bottom-up Aggregation -->
+  <rect x="80" y="445" width="260" height="46" rx="8" fill="#fae8ff" stroke="#a855f7" stroke-width="2"/>
+  <text x="210" y="467" text-anchor="middle" font-size="12" font-weight="bold" fill="#7e22ce">Bottom-up Aggregation</text>
+  <text x="210" y="482" text-anchor="middle" font-size="10" fill="#64748b">propagate AABBs + COM to root</text>
+
+  <!-- Final output label -->
+  <line x1="210" y1="491" x2="210" y2="530" stroke="#333" stroke-width="2" marker-end="url(#ad2)"/>
+  <rect x="120" y="535" width="180" height="30" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5"/>
+  <text x="210" y="555" text-anchor="middle" font-size="12" fill="#475569">Ready for Traversal</text>
+</svg>
+<div class="caption">Figure 9: LBVH construction pipeline. Six GPU compute passes build the bounding-volume hierarchy each timestep. Dashed lines indicate pipeline barriers (storage-buffer read-after-write) between passes. Colors group related phases: scene analysis (blue), sorting (amber), topology (green), aggregation (purple).</div>
+<button class="save-btn" onclick="savePng(this, 'fig_lbvh_pipeline.png')">Save as PNG</button>
+</div>
+
+<script>
+function savePng(btn, filename) {
+  var svg = btn.closest('.fig-container').querySelector('svg');
+  var svgData = new XMLSerializer().serializeToString(svg);
+  var scale = 3;
+  var canvas = document.createElement('canvas');
+  canvas.width = svg.width.baseVal.value * scale;
+  canvas.height = svg.height.baseVal.value * scale;
+  var ctx = canvas.getContext('2d');
+  var img = new Image();
+  img.onload = function() {
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    var a = document.createElement('a');
+    a.download = filename;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  };
+  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+}
+</script>
+</body>
+</html>

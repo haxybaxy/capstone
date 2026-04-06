@@ -79,9 +79,14 @@ Sub-group 2f repeats the default configuration ($N = 5000$, $Delta t = 0.001$, $
 The disk scenario targets large-$N$ scalability and qualitative morphological assessment. Sub-group 3a scales $N$ over ${10000, 25000, 50000, 75000, 100000}$ with default parameters and 1,000 steps each, measuring runtime scaling and timing decomposition. Morphological evolution (spiral arm formation, bar instability) is assessed through interactive-mode visualisation at selected timesteps and reported descriptively.
 
 #figure(
-  rect(width: 100%, height: 6cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: Four-panel figure showing disk morphology evolution at $t = 0$, $t = 1$, $t = 5$, and $t = 10$ simulation time units for Scenario C with $N = 50000$. Capture from interactive visualisation mode._]
-  ],
+  grid(
+    columns: 2,
+    gutter: 12pt,
+    figure(image("../graphics/fig_disk_t0.png", width: 100%), caption: [_(a)_ $t = 0$], numbering: none),
+    figure(image("../graphics/fig_disk_t1.png", width: 100%), caption: [_(b)_ $t = 1$], numbering: none),
+    figure(image("../graphics/fig_disk_t5.png", width: 100%), caption: [_(c)_ $t = 5$], numbering: none),
+    figure(image("../graphics/fig_disk_t10.png", width: 100%), caption: [_(d)_ $t = 10$], numbering: none),
+  ),
   caption: [Morphological evolution of the rotating exponential disk (Scenario C, $N = 50000$). Panels show the face-on particle distribution at four simulation times, illustrating the development of spiral structure.],
 ) <fig:disk-evolution>
 
