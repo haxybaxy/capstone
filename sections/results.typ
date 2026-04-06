@@ -56,7 +56,7 @@ Force evaluation accounts for nearly all step time at every particle count teste
 
 === Direct vs Tree: Speed–Accuracy Trade-off
 
-@tab:crossover compares runtime and energy drift between direct $O(N^2)$ summation and the tree-based $O(N log N)$ path. Direct summation is faster at all tested particle counts — its regular, branch-free access pattern maps well onto the GPU. The tree path, however, drifts roughly 26 times less at the largest $N$ tested, and this gap widens with particle count. The real crossover is not runtime but _accuracy_: the tree path trades throughput for the force accuracy needed to keep the simulation physically meaningful.
+@tab:crossover compares runtime and energy drift between direct $O(N^2)$ summation and the tree-based $O(N log N)$ path. Direct summation is faster at all tested particle counts; its regular, branch-free access pattern maps well onto the GPU. The tree path, however, drifts roughly 26 times less at the largest $N$ tested, and this gap widens with particle count. The real crossover is not runtime but _accuracy_: the tree path trades throughput for the force accuracy needed to keep the simulation physically meaningful.
 
 #figure(
   table(
@@ -97,7 +97,7 @@ Force evaluation accounts for nearly all step time at every particle count teste
   caption: [WebGPU (wgpu-native) vs native Metal (UniSim @unisim, stabilised fork @unisim-fork) Barnes–Hut performance on the same Apple M2. At $N gt.eq 5000$ the WebGPU implementation outperforms the Metal baseline, reflecting the efficiency of the fully GPU-resident LBVH pipeline.],
 ) <tab:metal-comparison>
 
-WebGPU carries about 2$times$ overhead at the smallest particle count, where per-dispatch cost dominates. Once $N$ reaches 5 000 and GPU compute takes over, the WebGPU solver is consistently faster — nearly 3$times$ at the largest $N$. This advantage reflects the fully GPU-resident LBVH pipeline and optimised traversal shader rather than WebGPU being inherently faster than Metal. The key finding for RQ2 is that the WebGPU abstraction layer imposes no measurable overhead once GPU compute dominates.
+WebGPU carries about 2$times$ overhead at the smallest particle count, where per-dispatch cost dominates. Once $N$ reaches 5 000 and GPU compute takes over, the WebGPU solver is consistently faster, reaching nearly 3$times$ at the largest $N$. This advantage reflects the fully GPU-resident LBVH pipeline and optimised traversal shader rather than WebGPU being inherently faster than Metal. The key finding for RQ2 is that the WebGPU abstraction layer imposes no measurable overhead once GPU compute dominates.
 
 === Cross-Backend Implementation Comparison
 
@@ -121,7 +121,7 @@ WebGPU carries about 2$times$ overhead at the smallest particle count, where per
   caption: [Grouped bar chart of per-step runtime across four WebGPU implementations at three particle counts. Implementation choice produces large performance variation, particularly at $N = 100000$.],
 ) <fig:cross-backend>
 
-The variation across implementations is substantial — at $N = 100000$ the fastest and slowest differ by over 1.5$times$. Dawn has the lowest per-dispatch overhead at small $N$ but scales the worst; wgpu-native is the opposite, starting slower but handling large workloads most efficiently. Chrome and Safari fall in between, with Safari consistently the slowest. These findings are consistent with Maczan's observation that implementation choice within the same backend produces significant performance variation @maczan2026.
+The variation across implementations is substantial: at $N = 100000$ the fastest and slowest differ by over 1.5$times$. Dawn has the lowest per-dispatch overhead at small $N$ but scales the worst; wgpu-native is the opposite, starting slower but handling large workloads most efficiently. Chrome and Safari fall in between, with Safari consistently the slowest. These findings are consistent with Maczan's observation that implementation choice within the same backend produces significant performance variation @maczan2026.
 
 == RQ3: Browser Feasibility
 
@@ -148,7 +148,7 @@ The variation across implementations is substantial — at $N = 100000$ the fast
 
 == Numerical Quality
 
-Energy drift is reported as a secondary observation characterising the precision and approximation quality of the solver. The opening-angle sweep at $N = 5000$ (@tab:theta-sweep) shows that drift spans about two orders of magnitude across the tested $theta$ range — larger opening angles admit more distant nodes into the force approximation, introducing greater truncation error. Runtime drops modestly as $theta$ increases, reflecting fewer node interactions per particle. Momentum is conserved to within 0.1% over 5,000 steps at all tested $theta$ values.
+Energy drift is reported as a secondary observation characterising the precision and approximation quality of the solver. The opening-angle sweep at $N = 5000$ (@tab:theta-sweep) shows that drift spans about two orders of magnitude across the tested $theta$ range. Larger opening angles admit more distant nodes into the force approximation, introducing greater truncation error. Runtime drops modestly as $theta$ increases, reflecting fewer node interactions per particle. Momentum is conserved to within 0.1% over 5,000 steps at all tested $theta$ values.
 
 #figure(
   table(
