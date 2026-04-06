@@ -13,19 +13,25 @@ All experiments were executed on a single workstation whose configuration is sum
     columns: (auto, auto),
     align: (left, left),
     [*Component*], [*Specification*],
-    [GPU], [Apple M2 (unified memory, Metal backend via wgpu-native)],
-    [CPU], [Apple M2 (8-core, 4 performance + 4 efficiency)],
-    [RAM], [8 GB unified memory],
+    [GPU / CPU], [Apple M2 (8-core GPU, 4P+4E CPU, unified memory)],
+    [RAM], [16 GB unified memory],
     [Operating System], [macOS (Darwin 25.2.0)],
-    [WebGPU Backend], [wgpu-native (Rust-based, Metal backend 0x5)],
-    [Compiler], [Apple Clang, C++20, Release build (-O2)],
+    [Native WebGPU], [wgpu-native (Rust-based, Metal backend)],
+    [Native WebGPU (alt.)], [Dawn (Google, Metal backend)],
+    [Browser (Chromium)], [Chrome 146.0.7680.178 (arm64)],
+    [Browser (WebKit)], [Safari 26.2],
+    [Metal baseline], [UniSim @unisim (native Metal Barnes–Hut)],
+    [Compiler], [Apple Clang, C++20, Release (-O2)],
     [Timing], [`std::chrono::high_resolution_clock` (ms precision)],
-    [Diagnostic Precision], [CPU double-precision (64-bit) for energy and momentum],
   ),
-  caption: [Hardware and software configuration for all experiments. The Apple M2 integrated GPU uses Metal as the underlying graphics API, accessed through the wgpu-native WebGPU implementation.],
+  caption: [Hardware and software configuration. All experiments run on the same Apple M2 system. The four WebGPU implementations and the native Metal baseline all use the same Metal graphics driver, isolating the overhead of each abstraction layer.],
 ) <tab:platform>
 
-Each run is executed in headless batch mode, with all simulation parameters (scenario type, $N$, $Delta t$, $theta$, softening $epsilon$, integrator, tree type, force method, step count, and random seed) specified at invocation. The CSV output records twelve columns per step: step number, simulation time, kinetic energy, potential energy (zero when $N > 5000$), total energy, energy drift, three momentum components ($p_x$, $p_y$, $p_z$), and three timing components (tree build, force evaluation, and integration in milliseconds). Timing values are averaged over all steps after discarding the first ten as warmup.
+Each run is executed in headless batch mode, with all simulation parameters (scenario type, $N$, $Delta t$, $theta$, softening $epsilon$, integrator, tree type, force method, step count, and random seed) specified at invocation. The CSV output records twelve columns per step: step number, simulation time, kinetic energy, potential energy (zero when $N > 5000$), total energy, energy drift, three momentum components ($p_x$, $p_y$, $p_z$), and three timing components (tree build, force evaluation, and integration in milliseconds).
+
+== Benchmarking Protocol
+
+The timing methodology follows established practices for GPU benchmarking @maczan2026. Each configuration is warmed up by discarding the first 50 steps, during which pipeline compilation, buffer allocation, and caching stabilise. Timing is then collected over the subsequent 100 steps and reported as mean $plus.minus$ standard deviation, with the 95% confidence interval computed via the $t$-distribution. The coefficient of variation ($"CV" = sigma \/ mu$) is reported to quantify run-to-run stability; configurations with $"CV" > 10%$ are flagged and investigated. For the cross-backend comparison (Group 6), positions are held frozen (forces are computed but not applied) to isolate dispatch and scheduling overhead from physics-dependent variation in tree structure. This frozen-state protocol ensures that all backends execute identical GPU workloads, so that measured differences reflect only the overhead of the WebGPU implementation and host-side scheduling.
 
 == Experiment Groups
 
@@ -40,14 +46,14 @@ The experiments are organised into five groups, each targeting one or more resea
     [2a: N-scaling], [B (Plummer)], [$N in {100 "–" 10^5}$], [9], [RQ1, RQ3],
     [2b: Theta sweep], [B (Plummer)], [$theta in {0.3, 0.5, 0.7, 1.0}$], [4], [RQ2],
     [2c: Timestep sweep], [B (Plummer)], [$Delta t in {5 times 10^(-5) "–" 5 times 10^(-3)}$], [5], [RQ2],
-    [2d: Integrator comparison], [B (Plummer)], [Euler vs leapfrog], [1], [RQ2],
     [2e: Softening sweep], [B (Plummer)], [$epsilon in {0.1 "–" 2.0}$], [5], [RQ2],
-    [2f: Seed robustness], [B (Plummer)], [seed $in {42, 123, 256}$], [3], [RQ3],
     [3a: Disk N-scaling], [C (disk)], [$N in {10^4 "–" 10^5}$], [5], [RQ1, RQ3],
     [4: Direct vs tree crossover], [B (Plummer)], [force method $times N$], [12], [RQ1],
     [5: Native vs browser], [B (Plummer)], [execution platform $times N$], [9], [RQ3],
+    [6: Cross-backend comparison], [B (Plummer)], [WebGPU impl $times N$], [12], [RQ3],
+    [7: LBVH pass breakdown], [B (Plummer)], [per-pass timing $times N$], [5], [RQ1],
   ),
-  caption: [Summary of experiment groups, swept variables, and research questions addressed. A total of 63 individual runs were executed.],
+  caption: [Summary of experiment groups, swept variables, and research questions addressed.],
 ) <tab:experiment-matrix>
 
 === Group 1: Two-Body Orbit Validation (Scenario A)
@@ -60,9 +66,7 @@ The Plummer sphere scenario provides the primary quantitative testbed because it
 
 Sub-group 2a (N-scaling) varies $N$ over ${100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000}$ with all other parameters fixed at defaults ($Delta t = 0.001$, $theta = 0.75$, $epsilon = 0.5$, leapfrog, GPU LBVH). Each run executes 1,000 steps. This sub-group directly addresses RQ1 (scalability) and RQ3 (feasibility at large $N$).
 
-Sub-groups 2b through 2e isolate the effects of individual parameters at fixed $N = 5000$ (chosen because potential energy is computed at this size, enabling full energy tracking). Sub-group 2b sweeps $theta in {0.3, 0.5, 0.7, 1.0}$; sub-group 2c sweeps $Delta t in {5 times 10^(-5), 10^(-4), 5 times 10^(-4), 10^(-3), 5 times 10^(-3)}$; sub-group 2d compares Euler to leapfrog at $Delta t = 0.001$; and sub-group 2e sweeps $epsilon in {0.1, 0.25, 0.5, 1.0, 2.0}$. All parameter-sweep runs execute 5,000 steps.
-
-Sub-group 2f repeats the default configuration ($N = 5000$, $Delta t = 0.001$, $theta = 0.75$) with three seeds (42, 123, 256) for 1,000 steps to assess timing and diagnostic variability across stochastic initial conditions.
+Sub-groups 2b through 2e isolate the effects of individual parameters at fixed $N = 5000$ (chosen because potential energy is computed at this size, enabling full energy tracking). Sub-group 2b sweeps $theta in {0.3, 0.5, 0.7, 1.0}$; sub-group 2c sweeps $Delta t in {5 times 10^(-5), 10^(-4), 5 times 10^(-4), 10^(-3), 5 times 10^(-3)}$; and sub-group 2e sweeps $epsilon in {0.1, 0.25, 0.5, 1.0, 2.0}$. All parameter-sweep runs execute 5,000 steps.
 
 === Group 3: Rotating Disk Scaling (Scenario C)
 
@@ -89,3 +93,11 @@ To identify the particle count at which hierarchical force evaluation becomes fa
 To evaluate WebGPU's portability promise (RQ3), the same GPU LBVH Barnes–Hut configuration used in Group 2a is executed in a browser environment via Emscripten @emscripten. The native C++ codebase is cross-compiled to WebAssembly (WASM) using Emscripten with two key flags: `-sASYNCIFY`, which transforms synchronous C++ code into asynchronous form so that the simulation can yield control to the browser's event loop between timesteps (required because browsers do not allow long-running synchronous code on the main thread), and `-sALLOW_MEMORY_GROWTH=1`, which permits the WebAssembly linear memory to grow dynamically as particle count increases rather than requiring a fixed-size allocation at compile time. The resulting WebAssembly module runs in a headless Chromium instance on the same hardware, using the browser's WebGPU implementation (backed by the same Metal driver). Particle counts sweep $N in {100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000}$ with all other parameters matching Group 2a ($Delta t = 0.001$, $theta = 0.75$, $epsilon = 0.5$, leapfrog, GPU LBVH, 1000 steps).
 
 Two timing metrics are collected: (1) wall-clock milliseconds per step, computed from the console-log timestamps emitted every 100 steps, which captures all overhead including event-loop scheduling and Emscripten asyncify yields; and (2) GPU-side timing from the sampled per-step tree/force/integrate breakdowns logged to the console. Energy drift at the final step is compared to the native run at each $N$ to verify numerical consistency across platforms. A GPU command-buffer flush was required after each compute dispatch in the browser path to prevent command coalescing from stalling the pipeline; this fix had no effect on native execution.
+
+=== Group 6: Cross-Backend Implementation Comparison
+
+To characterise the performance impact of the WebGPU implementation layer itself, the same simulation configuration is executed across four WebGPU implementations on the same Apple M2 hardware, all backed by the Metal graphics API: wgpu-native (the default native backend), Dawn @dawn (Google's WebGPU implementation), Chrome (browser WebGPU via Emscripten), and Safari (browser WebGPU via Emscripten). This design isolates the overhead introduced by each implementation from the GPU compute itself, since all four paths execute identical WGSL shaders on the same Metal driver. Recent work on WebGPU dispatch overhead has shown that implementation choice within the same backend can produce up to 2.2$times$ variation in per-dispatch cost @maczan2026, making this comparison directly relevant to understanding the platform overhead reported in Group 5. Particle counts sweep $N in {1000, 10000, 100000}$ using the frozen-state benchmarking protocol described above (50 warmup steps, 100 measured steps, positions held constant). For each implementation and $N$, the mean milliseconds per step, standard deviation, 95% confidence interval, and coefficient of variation are reported.
+
+=== Group 7: LBVH Construction Pass Breakdown
+
+To identify which phases of the LBVH construction pipeline dominate total tree-build time, per-pass timing is collected at $N in {1000, 5000, 10000, 50000, 100000}$ using CPU-side timing markers placed between each compute dispatch. The seven LBVH sub-passes (global AABB reduction, Morton code generation, radix sort, Karras topology construction, leaf initialisation, bottom-up aggregation) and the force evaluation pass are timed individually. This decomposition reveals whether the sort phase, the topology construction, or the bottom-up aggregation is the primary bottleneck, and how the balance shifts with $N$.
