@@ -35,14 +35,14 @@ We follow established practices for GPU benchmarking @maczan2026. Each configura
 
 == Experiment Groups
 
-The experiments are organised into seven groups, each targeting one or more research questions or characterising numerical quality (@tab:experiment-matrix).
+The experiments are organised into seven groups, each targeting one or more research questions or characterising numerical quality (@tab:experiment-matrix). Exact command-line invocations for reproducing each group are provided in the Appendix.
 
 #figure(
   table(
     columns: (auto, auto, auto, auto, auto),
     align: (left, left, left, left, left),
     [*Group*], [*Scenario*], [*Variable*], [*Runs*], [*RQ*],
-    [1: Two-body validation], [A (two-body)], [$Delta t times$ integrator], [10], [Qual.],
+    [1: Two-body validation], [A (two-body)], [$Delta t$], [5], [Qual.],
     [2a: N-scaling], [B (Plummer)], [$N in {100 "–" 10^5}$], [9], [RQ1, RQ3],
     [2b: Theta sweep], [B (Plummer)], [$theta in {0.3, 0.5, 0.7, 1.0}$], [4], [Qual.],
     [2c: Timestep sweep], [B (Plummer)], [$Delta t in {5 times 10^(-5) "–" 5 times 10^(-3)}$], [5], [Qual.],
@@ -58,7 +58,7 @@ The experiments are organised into seven groups, each targeting one or more rese
 
 === Group 1: Two-Body Orbit Validation (Scenario A)
 
-This group verifies integrator correctness using the two-body orbit configuration ($N = 2$, $m = 1000$ each). The timestep $Delta t$ is swept over ${0.0001, 0.0005, 0.001, 0.005, 0.01}$ for both the leapfrog and Euler integrators, yielding ten runs of 50,000 steps each. All runs use the GPU BVH tree path with $theta = 0.75$, $epsilon = 0.5$, and seed 42. The primary diagnostic is the energy drift $( Delta E(t) ) / ( |E(0)| )$ over the full integration, with secondary attention to momentum magnitude and orbit stability.
+This group verifies integrator correctness using the two-body orbit configuration ($N = 2$, $m = 1000$ each). The timestep $Delta t$ is swept over ${0.0001, 0.0005, 0.001, 0.005, 0.01}$ using the leapfrog integrator, yielding five runs of 50,000 steps each. All runs use the GPU BVH tree path with $theta = 0.75$, $epsilon = 0.5$, and seed 42. The primary diagnostic is the energy drift $( Delta E(t) ) / ( |E(0)| )$ over the full integration, with secondary attention to momentum magnitude and orbit stability.
 
 === Group 2: Plummer Sphere Parameter Sweeps (Scenario B)
 
