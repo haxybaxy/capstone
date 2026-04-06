@@ -42,9 +42,9 @@ In our simulation, each particle represents a mass element evolving under self-g
     bold(a)_i = G sum_(j eq.not i) m_j frac(bold(r)_j - bold(r)_i, (||bold(r)_j - bold(r)_i||^2 + epsilon^2)^(3/2))
   $,
 )
-where $bold(r)_i$ and $bold(r)_j$ are the position vectors of particles $i$ and $j$, $m_j$ is the mass of particle $j$, and $epsilon$ is a softening length (default 0.5, configurable). The softening parameter introduces a Plummer-type potential that suppresses the $1\/r^2$ singularity at short range, preventing divergent accelerations during close encounters @galacticdynamics2nded. This formulation is equivalent to treating each particle as a smooth mass distribution of characteristic radius $epsilon$ rather than a point mass.
+where $bold(r)_i$ and $bold(r)_j$ are the position vectors of particles $i$ and $j$, $m_j$ is the mass of particle $j$, and $epsilon$ is a softening length (default 0.5, configurable). The softening parameter introduces a Plummer-type potential that suppresses the $1\/r^2$ singularity at short range, preventing erratic and divergent accelerations during close interactions @galacticdynamics2nded. This formulation is equivalent to treating each particle as a smooth mass distribution of characteristic radius $epsilon$ rather than a single point mass.
 
-On the GPU, particle state is stored as packed four-component vectors (`vec4<f32>`), with mass in the $w$ component of the position vector: $(x, y, z, m)$. This packing cuts the number of buffer reads during force evaluation compared to separate position and mass buffers. We considered a Structure-of-Arrays (SoA) layout but rejected it after analysis: the BVH force shader (95–99% of step time) never reads particle masses directly — it uses the aggregated node masses from the bottom-up pass. The shaders that do read particle mass (leaf initialisation, drift) always access position and mass together, so separating them would hurt cache performance. The shaders that read only position (bounding box, Morton code) account for less than 1% of step time, making any bandwidth saving negligible. @fig:particle-layout summarises the storage layout for all three state arrays.
+On the GPU, a particle's state is stored as packed four-component vectors (`vec4<f32>`), with mass in the $w$ component of the position vector: $(x, y, z, m)$. This packing cuts the number of buffer reads during force evaluation compared to separate position and mass buffers. We considered a Structure-of-Arrays (SoA) layout but rejected it after further analysis, since the BVH force shader (95–99% of step time) never reads particle masses directly, as it uses the aggregated node masses from the bottom-up pass. The shaders that do read particle mass (leaf initialisation, drift) always need to access the position and mass together, so separating them would hurt cache performance. The shaders that only read positions (bounding box, Morton code) account for less than 1% of step time, making any bandwidth saving negligible. @fig:particle-layout summarises the storage layout for all three state arrays.
 
 #figure(
   table(
@@ -58,11 +58,11 @@ On the GPU, particle state is stored as packed four-component vectors (`vec4<f32
   caption: [Particle state layout using `vec4<f32>` packing. Mass is stored in the $w$ component of the position vector to reduce buffer count and memory bandwidth during force evaluation.],
 ) <fig:particle-layout>
 
-All GPU kernels run in 32-bit floating point, which maximises throughput and matches current WebGPU capabilities. Diagnostic quantities (total energy and linear momentum) are computed on the CPU in double precision (64-bit) to reduce accumulation error over long integrations. This split is a practical concession: WebGPU does not support 64-bit GPU arithmetic @realitycheck.
+All GPU kernels run in 32-bit floating point, which maximises throughput and matches current WebGPU capabilities. Diagnostic quantities such as the total energy and linear momentum, are computed on the CPU in double precision (64-bit) to reduce accumulation error over long integrations. This split is a practical concession, since WebGPU does not support 64-bit GPU arithmetic @realitycheck.
 
 == Time Integration
 
-We integrate with a fixed-timestep, second-order symplectic leapfrog in kick–drift–kick (KDK) form @verlet1967. In what follows, the superscript $n$ denotes the timestep index, and $bold(r)_i^n$, $bold(v)_i^n$, $bold(a)_i^n$ are the position, velocity, and acceleration of particle $i$ at step $n$. With timestep $Delta t$ (default $10^(-3)$), the update has three stages. A half-kick advances velocities by half a step using the current accelerations:
+In order to represent time in a discrete manner, we integrate with a fixed-timestep, second-order symplectic leapfrog in kick–drift–kick (KDK) form @verlet1967. In the following equations, the superscript $n$ denotes the timestep index, and $bold(r)_i^n$, $bold(v)_i^n$, $bold(a)_i^n$ represent the position, velocity, and acceleration of particle $i$ at step $n$. With timestep $Delta t$ (default $10^(-3)$), the update has three stages. A half-kick advances velocities by half a step using the current accelerations:
 #math.equation(
   $
     bold(v)_i^(n+1\/2) = bold(v)_i^(n) + frac(Delta t, 2) bold(a)_i^n
@@ -87,15 +87,17 @@ The most expensive step in each integration cycle is the evaluation of accelerat
 
 == Hierarchical Force Evaluation
 
-Rather than computing all $N(N-1)\/2$ pairwise interactions directly, the solver groups distant particles into tree nodes and approximates each group as a single equivalent mass.
+Rather than computing all $N(N-1)\/2$ pairwise interactions directly, our solver groups distant particles into tree nodes and approximates each group as a single equivalent mass.
 
-Each internal node of the tree stores a total mass $M = sum_(i in "node") m_i$ and a center of mass $bold(R) = (sum_(i in "node") m_i bold(r)_i) \/ M$, computed by aggregating over all particles contained in that node's subtree. When a node is accepted as a monopole, its gravitational contribution to particle $i$ is
+Each internal node of the tree stores a total mass $M = sum_(i in "node") m_i$ and a centre of mass $bold(R) = (sum_(i in "node") m_i bold(r)_i) \/ M$, computed by aggregating over all particles in that node's subtree. When a node is accepted as a monopole, its gravitational contribution to particle $i$ is
 #math.equation(
   $
     bold(a)_(i,"node") = G M frac(bold(R) - bold(r)_i, (||bold(R) - bold(r)_i||^2 + epsilon^2)^(3/2))
   $,
 )
-The tree is implemented as a binary Bounding Volume Hierarchy (BVH) constructed and traversed entirely on the GPU.
+The classical Barnes–Hut algorithm uses an octree, where space is recursively divided into eight equal sub-cubes, producing a tree whose structure is determined by the spatial partition rather than the particles themselves. On a GPU, octrees are awkward, since each node has up to eight children, many of which may be empty, and the recursive top-down construction is inherently serial. A Bounding Volume Hierarchy (BVH) avoids both problems. A BVH is a binary tree in which each internal node stores an axis-aligned bounding box (AABB) that tightly encloses the particles in its subtree. Because the tree is binary (two children per node, not eight), traversal requires fewer branch decisions per level, and the total node count is fixed at $2N - 1$ regardless of the spatial distribution. Most importantly, a BVH can be built bottom-up from a sorted particle list in a fully parallel, non-recursive pipeline, which is the Linear BVH (LBVH) construction described below. The trade-off is that BVH bounding boxes can overlap (unlike octree cells, which partition space without gaps), so the opening criterion must use the actual node extent rather than a uniform cell width.
+
+We implement the tree as a BVH constructed and traversed entirely on the GPU each timestep.
 
 An internal node is accepted as a monopole when it is sufficiently small relative to its distance from the target particle. The opening criterion tests whether the squared maximum extent of the node's axis-aligned bounding box (AABB) satisfies $"maxExtent"^2 \/ d^2 < theta^2$, where $"maxExtent" = max(Delta x, Delta y, Delta z)$ and $d^2 = ||bold(r)_i - bold(R)||^2$. This extent-based criterion reflects the non-cubic node shapes that arise in a BVH more accurately than a uniform half-width, and is expressed in squared form to avoid a per-node square root. Salmon and Warren provide rigorous error bounds for these opening criteria, showing that the conventional Barnes–Hut criterion can admit unbounded errors for $theta >= 1\/3$ in pathological configurations @skeletons_1994.
 
@@ -110,13 +112,13 @@ An internal node is accepted as a monopole when it is sufficiently small relativ
 
 The implementation is written in C++20 for host-side orchestration and WGSL for GPU compute and rendering shaders, using the WebGPU C API directly without wrapper libraries. CMake handles the build with pinned dependency versions for deterministic builds. Three backends are supported: wgpu-native @wgpu-native (Rust-based), Dawn @dawn (Google's implementation), and Emscripten (cross-compiling to WebAssembly for browser deployment).
 
-All physics — integration, tree construction, force evaluation — runs on the GPU every step. The CPU handles only diagnostics: at configurable intervals, positions and velocities are read back through staging buffers and energy and momentum are computed in double precision. No per-step CPU physics overhead is incurred in the primary execution path.
+All physics, such as the integration, tree construction, and force evaluation, runs on the GPU every step. The CPU handles only diagnostics: at configurable intervals, positions and velocities are read back through staging buffers and energy and momentum are computed in double precision. No per-step CPU physics overhead is incurred in the primary execution path.
 
 == WebGPU Compute Methodology
 
 Simulation state is stored in WebGPU storage buffers using the packed `vec4<f32>` layout described in @fig:particle-layout: positions (with mass in the $w$ component), velocities, and accelerations. The BVH is stored as a flat array of $2N - 1$ nodes, each containing a centre of mass, total mass, and axis-aligned bounding box. A uniform parameters buffer shares simulation parameters between host and shader code. In-place updates are used throughout: there is no double buffering of positions, velocities, or accelerations. Correct ordering between compute passes relies on WebGPU's implicit storage-buffer synchronisation between dispatches within a single command buffer submission. Bind groups are cached and reused across frames to avoid per-frame recreation overhead.
 
-The WGSL compute shaders fall into two groups: integration and force evaluation (direct-summation baseline and BVH traversal), and LBVH construction in six passes @morton1966 @maximizeparallel. Workgroup sizes are tuned per kernel — 128 for force evaluation, 256 for integration and tree building — with the rationale discussed in the optimisation section below.
+The WGSL compute shaders fall into two groups: integration and force evaluation (direct-summation baseline and BVH traversal), and LBVH construction in six passes @morton1966 @maximizeparallel. Workgroup sizes are tuned per kernel (128 for force evaluation, 256 for integration and tree building) with the rationale discussed in the optimisation section below.
 
 === Per-timestep execution sequence
 
@@ -126,7 +128,7 @@ Each timestep is recorded into a single command encoder and submitted as one com
 
 === GPU tree traversal
 
-Because GPU compute shaders do not support recursion, tree traversal is implemented iteratively in the BVH force shader. One GPU thread is assigned per particle, and the thread maintains an explicit stack of node indices (maximum depth 64), beginning from the root. At each step, a node is either accepted as a monopole (if it is a leaf, or if the opening criterion is satisfied) and its gravitational contribution is accumulated, or it is expanded by pushing its two children onto the stack. This explicit-stack approach preserves the Barnes–Hut approximation structure while accommodating the lack of a call stack on GPU hardware and limiting branch divergence across threads within a workgroup @fastnbody @cudabarnes @maximizeparallel.
+Because GPU compute shaders do not support recursion since they don't have a call stack, tree traversal is implemented iteratively in the BVH force shader. One GPU thread is assigned per particle, and the thread maintains an explicit stack of node indices (maximum depth 64), beginning from the root. At each step, a node is either accepted as a monopole (if it is a leaf, or if the opening criterion is satisfied) and its gravitational contribution is accumulated, or it is expanded by pushing its two children onto the stack. This explicit-stack approach preserves the Barnes–Hut approximation structure while accommodating the lack of a call stack on GPU hardware and limiting branch divergence across threads within a workgroup @fastnbody @cudabarnes @maximizeparallel.
 
 === GPU LBVH construction
 
@@ -159,7 +161,7 @@ Profiling showed that BVH force evaluation accounts for 94–99% of total step t
 
 The baseline traversal shader performs three operations per node visit: a full 64-byte struct read from global memory, an opening-criterion computation involving approximately 20 floating-point operations including transcendental functions, and a stack-based depth-first traversal with no spatial ordering. Each represents a different bottleneck class (memory bandwidth, ALU throughput, and cache efficiency respectively), and the optimisations target all three.
 
-*Precomputed opening radius.* The opening criterion depends only on node-intrinsic properties that are invariant across particle interactions. In the baseline, these are recomputed for every particle–node pair. The optimised version precomputes a scalar opening radius per node during the bottom-up aggregation pass, computed as $"halfExtent" = ||bold(R) - bold(c)|| dot (1 + 0.6 log_2(max(M, 1)))$ where $bold(R)$ is the centre of mass, $bold(c)$ is the nearest AABB corner, and $M$ is the node's total mass. The mass-adaptive scaling widens the opening radius for massive nodes, making the traversal more conservative (and more accurate) where gravitational influence is strongest. The precomputed radius is stored in an otherwise unused field, and the per-interaction test reduces to a single distance comparison $d^2 > r^2$. This eliminates redundant computation across all particle interactions, yielding a 1.74$times$ speedup at $N = 100000$.
+*Precomputed opening radius.* The opening criterion depends only on node-intrinsic properties that are invariant across particle interactions. In the baseline, these are recomputed for every particle–node pair. The optimised version precomputes a scalar opening radius per node during the bottom-up aggregation pass, computed as $"halfExtent" = ||bold(R) - bold(c)|| dot (1 + 0.6 log_2(max(M, 1)))$ where $bold(R)$ is the centre of mass, $bold(c)$ is the nearest AABB corner, and $M$ is the node's total mass. The mass-adaptive scaling widens the opening radius for massive nodes, making the traversal more conservative (and more accurate) where gravitational influence is strongest. The precomputed radius is stored in an otherwise unused field, and the per-interaction test reduces to a single distance comparison $d^2 > r^2$. This eliminates redundant computation across all particle interactions, giving us a 1.74$times$ speedup at $N = 100000$.
 
 *Compact traversal nodes.* The force shader reads a 64-byte BVH node per visit but uses only 28 bytes (centre of mass, opening radius, child indices). A compaction pass copies these fields into a 32-byte traversal buffer, reducing memory bandwidth per node visit. This provides an additional 3% improvement at large $N$.
 
@@ -185,7 +187,12 @@ We also tried two approaches that did not work. Near-far child ordering (pushing
 
 == Rendering and Interactive Operation
 
-In interactive mode, particles are rendered as instanced billboard quads with additive blending. The vertex shader reads positions directly from the physics storage buffers, avoiding per-frame data upload. An ImGui overlay provides interactive control of simulation parameters and displays real-time diagnostics. In headless mode, rendering is skipped entirely for pure throughput measurement.
+In interactive mode, particles are rendered as instanced billboard quads with additive blending. The vertex shader reads positions directly from the physics storage buffers, avoiding per-frame data uploads. A toggleable trail effect improves visibility in sparse scenarios (e.g. the two-body orbit): a screen-space accumulation buffer reprojects the previous frame's trails into the current camera view, fades them by a configurable amount, and composites new particle positions on top with additive blending, using a ping-pong texture pair. An ImGui overlay (@fig:simscreen) provides interactive control of simulation parameters and displays real-time diagnostics. In headless mode, rendering is skipped entirely for pure throughput measurement.
+
+#figure(
+  image("../graphics/simscreen.png", width: 85%),
+  caption: [Interactive mode showing the ImGui control overlay. Simulation parameters, timing diagnostics, and rendering options (including the particle trail effect) can be adjusted at runtime.],
+) <fig:simscreen>
 
 == Initial Conditions and Benchmark Scenarios <sec:initial-conditions>
 

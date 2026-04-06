@@ -45,7 +45,7 @@
 #include "sections/discussion.typ"
 #include "sections/future_work.typ"
 #include "sections/conclusions.typ"
-// #include "sections/appendix.typ"
+#include "sections/appendix.typ"
 
 #pagebreak()
 // Typst will only show documents that have been referenced here!
