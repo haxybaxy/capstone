@@ -81,7 +81,7 @@ Force evaluation accounts for nearly all step time at every particle count teste
 
 === WebGPU vs Native Metal
 
-@tab:metal-comparison compares the WebGPU solver against the native Metal Barnes–Hut baseline (@unisim-fork, fork of UniSim @unisim). Both implementations use the same Metal graphics driver; the difference reflects the overhead of the WebGPU abstraction layer.
+@tab:metal-comparison compares the WebGPU solver against the native Metal Barnes–Hut baseline (@unisim-fork, fork of UniSim @unisim). The difference reflects the overhead of the WebGPU abstraction layer.
 
 #figure(
   table(
@@ -101,7 +101,7 @@ WebGPU carries about 2$times$ overhead at the smallest particle count, where per
 
 === Cross-Backend Implementation Comparison
 
-@tab:cross-backend compares four WebGPU implementations on the same hardware, all backed by the Metal API. This isolates the overhead introduced by each implementation from the GPU compute itself @maczan2026.
+@tab:cross-backend compares four WebGPU implementations, all backed by the Metal API. This isolates the overhead introduced by each implementation from the GPU compute itself @maczan2026.
 
 #figure(
   table(

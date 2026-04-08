@@ -10,7 +10,7 @@ Force evaluation accounts for 94–99% of step time across all tested particle c
 
 == Abstraction Overhead (RQ2)
 
-The WebGPU solver matches or exceeds a native Metal Barnes–Hut baseline (UniSim @unisim) at $N gt.eq 5000$ on the same Apple M2, with the advantage widening at larger particle counts. This reflects implementation differences between the two solvers rather than an inherent platform advantage. A four-way comparison across WebGPU implementations confirms that backend choice alone produces substantial performance variation, consistent with Maczan @maczan2026.
+The WebGPU solver matches or exceeds a native Metal Barnes–Hut baseline (UniSim @unisim) at $N gt.eq 5000$, with the advantage widening at larger particle counts. This reflects implementation differences between the two solvers rather than an inherent platform advantage. A four-way comparison across WebGPU implementations confirms that backend choice alone produces substantial performance variation, consistent with Maczan @maczan2026.
 
 == Browser Feasibility (RQ3)
 
