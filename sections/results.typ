@@ -2,7 +2,7 @@
 = Results and Analysis
 #set heading(numbering: "1.1")
 
-Results are organised by research question as follows: scalability and pipeline bottlenecks, WebGPU abstraction overhead relative to native Metal, and browser feasibility. All timing values are mean ms/step over 100 measured steps after 50 warmup steps, reported with standard deviation and coefficient of variation. Energy drift is $Delta E = |E(t) - E(0)| \/ |E(0)|$.
+Results are organised by research question as follows: scalability and pipeline bottlenecks, WebGPU abstraction overhead relative to native Metal, and browser feasibility. All timing values are mean ms/step over 100 measured steps after 50 warmup steps, reported with standard deviation and coefficient of variation.
 
 == RQ1: Scalability and Pipeline Bottlenecks
 
@@ -69,7 +69,7 @@ Force evaluation accounts for nearly all step time at every particle count teste
     [50,000], [35.64], [65.46], [$9.88 times 10^(-1)$], [$6.07 times 10^(-2)$],
     [100,000], [140.37], [180.11], [$2.01$], [$7.58 times 10^(-2)$],
   ),
-  caption: [Direct vs tree force runtime and energy drift (Plummer sphere, leapfrog, $theta = 0.75$).],
+  caption: [Direct vs tree force runtime and energy drift],
 ) <tab:crossover>
 
 #figure(

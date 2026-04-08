@@ -58,7 +58,7 @@ The experiments are split into seven groups, targeting one or more research ques
 
 === Group 1: Two-Body Orbit Validation (Scenario A)
 
-This group verifies integrator correctness using the two-body orbit configuration ($N = 2$, $m = 1000$ each). The timestep $Delta t$ is swept over ${0.0001, 0.0005, 0.001, 0.005, 0.01}$ using the leapfrog integrator, yielding five runs of 50,000 steps each. All runs use the GPU BVH tree path with $theta = 0.75$, $epsilon = 0.5$, and seed 42. The primary diagnostic is the energy drift $( Delta E(t) ) / ( |E(0)| )$ over the full integration, with secondary attention to momentum magnitude and orbit stability.
+This group verifies integrator correctness using the two-body orbit configuration ($N = 2$, $m = 1000$ each). The timestep $Delta t$ is swept over ${0.0001, 0.0005, 0.001, 0.005, 0.01}$ using the leapfrog integrator, yielding five runs of 50,000 steps each. All runs use the GPU BVH tree path with $theta = 0.75$, $epsilon = 0.5$, and seed 42. The primary diagnostic is the energy drift over the full integration, with secondary attention to momentum magnitude and orbit stability.
 
 === Group 2: Plummer Sphere Parameter Sweeps (Scenario B)
 
