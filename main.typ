@@ -5,7 +5,7 @@
 
 #set text(font: "Times New Roman", size: 12pt)
 
-#set heading(numbering: "1.a)")
+#set heading(numbering: "1.1")
 #show heading: it => {
   block(
     it,
@@ -37,7 +37,7 @@
 #show link: it => underline(text(fill: rgb("#0000EE"), it))
 
 #include "sections/title_page.typ"
-// #include "sections/abstract.typ"
+#include "sections/abstract.typ"
 #include "sections/introduction.typ"
 #include "sections/methodology.typ"
 #include "sections/experiments.typ"
@@ -45,7 +45,7 @@
 #include "sections/discussion.typ"
 #include "sections/future_work.typ"
 #include "sections/conclusions.typ"
-// #include "sections/appendix.typ"
+#include "sections/appendix.typ"
 
 #pagebreak()
 // Typst will only show documents that have been referenced here!

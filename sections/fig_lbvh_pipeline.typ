@@ -60,5 +60,5 @@
       corner-radius: 5pt,
     ),
   ),
-  caption: [LBVH construction pipeline. Six compute dispatches build the tree entirely on-device. Dashed lines represent implicit storage-buffer barriers between passes. The atomic-counter aggregation in pass 6 ensures correct bottom-up propagation of bounding boxes and centres of mass.],
+  caption: [LBVH construction pipeline. Six compute dispatches build the tree entirely on-device. Dashed lines represent implicit storage-buffer barriers between passes.],
 ) <fig:lbvh-pipeline>

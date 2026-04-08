@@ -2,99 +2,102 @@
 = Results and Analysis
 #set heading(numbering: "1.1")
 
-This section presents results organised by the three research questions: RQ1 (scalability and pipeline bottlenecks), RQ2 (WebGPU abstraction overhead relative to native Metal), and RQ3 (browser feasibility). All timing values are mean milliseconds per step over 100 measured steps after 50 warmup steps, reported with standard deviation and coefficient of variation. Energy drift is reported as $Delta E = |E(t) - E(0)| \/ |E(0)|$.
+Results are organised by research question as follows: scalability and pipeline bottlenecks, WebGPU abstraction overhead relative to native Metal, and browser feasibility. All timing values are mean ms/step over 100 measured steps after 50 warmup steps, reported with standard deviation and coefficient of variation. Energy drift is $Delta E = |E(t) - E(0)| \/ |E(0)|$.
 
 == RQ1: Scalability and Pipeline Bottlenecks
 
 === Runtime Scaling with Particle Count
 
-@tab:performance-summary presents the mean runtime per step and its three-component decomposition for the GPU LBVH Barnes–Hut path across the Plummer sphere scenario. Total runtime increases from 7.0 ms at $N = 1000$ to 182.8 ms at $N = 100000$.
+@tab:performance-summary presents the mean runtime per step and its three-component decomposition for the GPU LBVH Barnes–Hut path across the Plummer sphere scenario. Total runtime scales roughly 30-fold across two orders of magnitude in $N$.
 
 #figure(
   table(
     columns: (auto, auto, auto, auto, auto, auto, auto),
     align: (right, right, right, right, right, right, right),
     [*N*], [*ms/step*], [*$plus.minus$ std*], [*CV*], [*Tree (ms)*], [*Force (ms)*], [*Integrate (ms)*],
-    [1,000], [7.04], [1.66], [0.24], [0.38], [6.63], [0.04],
-    [5,000], [7.87], [2.99], [0.38], [0.25], [7.59], [0.03],
-    [10,000], [10.25], [0.94], [0.09], [0.32], [9.91], [0.03],
-    [50,000], [67.53], [1.95], [0.03], [0.91], [66.51], [0.11],
-    [100,000], [182.85], [3.33], [0.02], [0.96], [181.72], [0.17],
+    [1,000], [5.86], [0.57], [0.10], [0.31], [5.52], [0.03],
+    [5,000], [7.35], [2.59], [0.35], [0.25], [7.07], [0.03],
+    [10,000], [11.00], [2.31], [0.21], [0.34], [10.62], [0.04],
+    [50,000], [65.46], [1.82], [0.03], [0.23], [65.20], [0.02],
+    [100,000], [180.11], [3.19], [0.02], [0.28], [179.79], [0.03],
   ),
-  caption: [Performance summary with timing decomposition (Plummer sphere, leapfrog, $theta = 0.75$, $epsilon = 0.5$, wgpu-native/Metal). Force evaluation dominates at all $N$, accounting for 94–99% of total step time.],
+  caption: [Performance summary with timing decomposition.],
 ) <tab:performance-summary>
 
-// TODO: regenerate fig_n_scaling_plummer.png with new data
-// #figure(
-//   image("../graphics/fig_n_scaling_plummer.png", width: 80%),
-//   caption: [Mean runtime per timestep as a function of $N$ for the Plummer sphere scenario (GPU LBVH, leapfrog, $theta = 0.75$, wgpu-native/Metal).],
-// ) <fig:n-scaling-plummer>
+#figure(
+  image("../graphics/fig_n_scaling_plummer.png", width: 80%),
+  caption: [Mean runtime per timestep as a function of $N$.],
+) <fig:n-scaling-plummer>
 
-Force evaluation dominates at all particle counts, accounting for 94% of step time at $N = 1000$ and 99% at $N = 100000$. Tree construction (the seven-pass LBVH pipeline) remains below 1 ms even at $N = 100000$, indicating that the parallel construction method is efficient and that further optimisation efforts should target the BVH traversal shader rather than the tree-build pipeline.
+Force evaluation accounts for nearly all step time at every particle count tested, never dropping below 94%. Tree construction, by contrast, stays under half a millisecond regardless of $N$. The parallel construction pipeline scales well; any further optimisation effort belongs in the BVH traversal shader.
 
 === LBVH Construction Breakdown
 
-@tab:lbvh-breakdown decomposes tree construction into its seven individual passes. All six construction passes remain approximately constant with $N$ (1.3–4.6 ms each), confirming that the LBVH pipeline scales well. The radix sort is the most expensive construction pass at 4.4–4.7 ms. Force evaluation, shown in the final column for reference, is the component that drives the overall scaling behaviour.
+@tab:lbvh-breakdown decomposes tree construction into its six individual passes. All six construction passes remain approximately constant with $N$ (1.3–5.1 ms each), confirming that the LBVH pipeline scales well. The radix sort is the most expensive construction pass at 3.5–5.1 ms, accounting for 34–41% of total construction time. Force evaluation, shown in the final column for reference, is the component that drives the overall scaling behaviour.
 
 #figure(
   table(
     columns: (auto, auto, auto, auto, auto, auto, auto, auto),
     align: (right, right, right, right, right, right, right, right),
     [*N*], [*AABB*], [*Morton*], [*Sort*], [*Karras*], [*Leaf*], [*Aggr.*], [*Force*],
-    [1,000], [1.51], [1.34], [4.65], [1.41], [1.38], [1.43], [3.19],
-    [5,000], [1.46], [1.35], [4.44], [1.46], [1.34], [1.39], [8.27],
-    [10,000], [1.47], [1.37], [4.41], [1.37], [1.44], [1.45], [13.62],
-    [50,000], [1.46], [1.33], [3.57], [1.37], [1.33], [1.36], [63.04],
-    [100,000], [1.42], [1.35], [4.60], [1.40], [1.37], [1.38], [176.57],
+    [1,000], [1.65], [1.38], [5.05], [1.36], [1.36], [1.39], [2.72],
+    [5,000], [1.37], [1.32], [4.40], [1.29], [1.32], [1.32], [7.59],
+    [10,000], [1.57], [1.42], [4.53], [1.36], [1.39], [1.38], [13.45],
+    [50,000], [1.40], [1.33], [3.54], [1.35], [1.33], [1.32], [62.02],
+    [100,000], [1.33], [1.32], [4.08], [1.31], [1.32], [1.32], [175.39],
   ),
-  caption: [Per-pass timing (ms) for the LBVH construction pipeline and force evaluation. Construction passes are approximately constant with $N$; force evaluation drives the overall scaling.],
+  caption: [Per-pass timing (ms) for the LBVH construction pipeline and force evaluation.],
 ) <tab:lbvh-breakdown>
+
+#figure(
+  image("../assets/fig_lbvh_breakdown.png", width: 80%),
+  caption: [Stacked bar chart of LBVH construction passes at each $N$.],
+) <fig:lbvh-breakdown>
 
 === Direct vs Tree: Speed–Accuracy Trade-off
 
-@tab:crossover compares runtime and energy drift between direct $O(N^2)$ summation and the tree-based $O(N log N)$ path. Direct summation is faster at all tested particle counts, reflecting the high degree of GPU parallelism available for the regular, branch-free direct computation compared to the irregular memory access patterns of tree traversal. However, the tree path produces substantially lower energy drift: at $N = 100000$, direct summation yields $Delta E = 2.01$ while the tree path achieves $Delta E = 0.079$. The relevant crossover is therefore not one of runtime but of _accuracy_: the tree path sacrifices throughput for force accuracy that keeps the simulation physically meaningful over long integrations.
+@tab:crossover compares runtime and energy drift between direct $O(N^2)$ summation and the tree-based $O(N log N)$ path. Direct summation is faster at all tested particle counts; its regular, branch-free access pattern maps well onto the GPU. The tree path, however, drifts roughly 26 times less at the largest $N$ tested, and this gap widens with particle count. The real crossover is not runtime but _accuracy_: the tree path trades throughput for the force accuracy needed to keep the simulation physically meaningful.
 
 #figure(
   table(
     columns: (auto, auto, auto, auto, auto),
     align: (right, right, right, right, right),
     [*N*], [*Direct (ms)*], [*Tree (ms)*], [*Direct drift*], [*Tree drift*],
-    [1,000], [2.14], [6.76], [$2.25 times 10^(-2)$], [$6.45 times 10^(-5)$],
-    [5,000], [4.53], [7.83], [$1.21 times 10^(-1)$], [$2.40 times 10^(-4)$],
-    [10,000], [6.08], [11.11], [$2.11 times 10^(-1)$], [$9.26 times 10^(-3)$],
-    [50,000], [37.63], [67.31], [$9.88 times 10^(-1)$], [$6.14 times 10^(-2)$],
-    [100,000], [132.49], [171.22], [$2.01$], [$7.88 times 10^(-2)$],
+    [1,000], [1.53], [5.86], [$2.25 times 10^(-2)$], [$6.41 times 10^(-5)$],
+    [5,000], [4.03], [7.35], [$1.21 times 10^(-1)$], [$2.50 times 10^(-4)$],
+    [10,000], [7.46], [11.00], [$2.11 times 10^(-1)$], [$8.65 times 10^(-3)$],
+    [50,000], [35.64], [65.46], [$9.88 times 10^(-1)$], [$6.07 times 10^(-2)$],
+    [100,000], [140.37], [180.11], [$2.01$], [$7.58 times 10^(-2)$],
   ),
-  caption: [Direct vs tree force evaluation: runtime and energy drift (Plummer sphere, leapfrog, $theta = 0.75$). Direct summation is faster but accumulates substantially more energy drift, particularly at large $N$.],
+  caption: [Direct vs tree force runtime and energy drift (Plummer sphere, leapfrog, $theta = 0.75$).],
 ) <tab:crossover>
 
-// TODO: regenerate fig_crossover.png — dual-axis plot: runtime + drift
-// #figure(
-//   image("../graphics/fig_crossover.png", width: 80%),
-//   caption: [Direct vs tree force evaluation. Left axis: runtime (ms/step). Right axis: final energy drift. The tree path trades throughput for force accuracy.],
-// ) <fig:crossover>
+#figure(
+  image("../graphics/fig_crossover.png", width: 80%),
+  caption: [Direct vs tree force evaluation. Left axis: runtime (ms/step). Right axis: final energy drift.],
+) <fig:crossover>
 
 == RQ2: Abstraction Overhead
 
 === WebGPU vs Native Metal
 
-@tab:metal-comparison compares the WebGPU solver (wgpu-native/Metal) against the native Metal Barnes–Hut baseline (UniSim @unisim) on the same Apple M2 hardware. Both implementations use the same Metal graphics driver; the difference reflects the overhead of the WebGPU abstraction layer.
+@tab:metal-comparison compares the WebGPU solver against the native Metal Barnes–Hut baseline (@unisim-fork, fork of UniSim @unisim). Both implementations use the same Metal graphics driver; the difference reflects the overhead of the WebGPU abstraction layer.
 
 #figure(
   table(
     columns: (auto, auto, auto, auto),
     align: (right, right, right, right),
     [*N*], [*Metal (ms)*], [*WebGPU (ms)*], [*Ratio (WebGPU/Metal)*],
-    [1,000], [2.94], [7.04], [2.4$times$],
-    [5,000], [10.09], [7.87], [0.78$times$],
-    [10,000], [21.35], [10.25], [0.48$times$],
-    [50,000], [121.77], [67.53], [0.55$times$],
-    [100,000], [516.78], [182.85], [0.35$times$],
+    [1,000], [2.94], [5.86], [2.0$times$],
+    [5,000], [10.09], [7.35], [0.73$times$],
+    [10,000], [21.35], [11.00], [0.52$times$],
+    [50,000], [121.77], [65.46], [0.54$times$],
+    [100,000], [516.78], [180.11], [0.35$times$],
   ),
-  caption: [WebGPU (wgpu-native) vs native Metal (UniSim @unisim, stabilised fork @unisim-fork) Barnes–Hut performance on the same Apple M2. At $N gt.eq 5000$ the WebGPU implementation outperforms the Metal baseline, reflecting the efficiency of the fully GPU-resident LBVH pipeline.],
+  caption: [WebGPU (wgpu-native) vs native Metal (UniSim @unisim, stabilised fork @unisim-fork)],
 ) <tab:metal-comparison>
 
-At $N = 1000$, WebGPU is 2.4$times$ slower than native Metal, reflecting per-dispatch overhead at small workloads. At $N gt.eq 5000$, the WebGPU implementation is consistently faster, reaching 2.8$times$ faster at $N = 100000$ (182.85 ms vs 516.78 ms). This advantage reflects differences in tree construction and traversal strategy — the fully GPU-resident LBVH with the optimised traversal shader described in the methodology outperforms UniSim's approach at scale — rather than WebGPU being inherently faster than Metal. The key finding for RQ2 is that the WebGPU abstraction layer imposes no measurable overhead once GPU compute dominates at $N gt.eq 5000$.
+WebGPU carries about 2$times$ overhead at the smallest particle count, where per-dispatch cost dominates. Once $N$ reaches 5 000 and GPU compute takes over, the WebGPU solver is consistently faster, reaching nearly 3$times$ at the largest $N$. This advantage reflects the fully GPU-resident LBVH pipeline and optimised traversal shader rather than WebGPU being inherently faster than Metal. The key finding for RQ2 is that the WebGPU abstraction layer imposes no measurable overhead once GPU compute dominates.
 
 === Cross-Backend Implementation Comparison
 
@@ -105,57 +108,61 @@ At $N = 1000$, WebGPU is 2.4$times$ slower than native Metal, reflecting per-dis
     columns: (auto, auto, auto, auto, auto),
     align: (left, right, right, right, right),
     [*Implementation*], [*N=1K (ms)*], [*N=10K (ms)*], [*N=100K (ms)*], [*CV (100K)*],
-    [Dawn], [1.47], [8.56], [274.57], [0.01],
-    [wgpu-native], [7.04], [10.25], [182.85], [0.02],
-    [Chrome], [35.86], [35.99], [219.96], [0.26],
-    [Safari], [34.10], [53.18], [311.27], [0.01],
+    [Dawn], [1.40], [8.54], [272.73], [0.01],
+    [wgpu-native], [5.86], [11.00], [180.11], [0.02],
+    [Chrome], [4.87], [17.81], [260.74], [0.01],
+    [Safari], [9.52], [20.97], [281.59], [0.01],
   ),
-  caption: [Per-step runtime across four WebGPU implementations (Plummer sphere, $theta = 0.75$, frozen-state protocol). All four use the Metal backend on Apple M2. Dawn is fastest at small $N$; wgpu-native scales best to large $N$.],
+  caption: [Per-step runtime across four WebGPU implementations.],
 ) <tab:cross-backend>
 
-The results reveal substantial variation across implementations. Dawn achieves the lowest per-dispatch overhead (1.47 ms at $N = 1000$) but scales to 274.57 ms at $N = 100000$, while wgpu-native starts higher (7.04 ms) but scales better (182.85 ms). The two browser implementations show a fixed floor of approximately 34–36 ms at small $N$, attributable to the Emscripten asyncify event-loop yield, above which they diverge: Chrome scales to 219.96 ms while Safari reaches 311.27 ms. These findings are consistent with Maczan's observation that implementation choice within the same backend produces significant performance variation @maczan2026.
+#figure(
+  image("../graphics/fig_cross_backend.png", width: 80%),
+  caption: [Grouped bar chart of per-step runtime across four WebGPU backends.],
+) <fig:cross-backend>
+
+The variation across implementations is substantial: at $N = 100000$ the fastest and slowest differ by over 1.5$times$. Dawn has the lowest per-dispatch overhead at small $N$ but scales the worst; wgpu-native is the opposite, starting slower but handling large workloads most efficiently. Chrome and Safari fall in between, with Safari consistently the slowest. These findings are consistent with Maczan's observation that implementation choice within the same backend produces significant performance variation @maczan2026.
 
 == RQ3: Browser Feasibility
 
-@tab:web-native compares native wgpu-native execution against browser execution via Chrome for the same simulation configuration. At small $N$, the browser wall-clock time is dominated by a fixed overhead of approximately 29 ms from the Emscripten asyncify mechanism. As $N$ grows and GPU compute time increases, this fixed cost becomes a diminishing fraction: at $N = 50000$ the browser matches native performance (67.77 ms vs 67.53 ms), and at $N = 100000$ the browser adds only a 1.2$times$ overhead (219.96 ms vs 182.85 ms).
+@tab:web-native compares native wgpu-native execution against browser execution via Chrome for the same simulation configuration. Chrome is actually slightly faster at the smallest particle count, suggesting lower per-dispatch overhead in the browser's WebGPU path. As $N$ grows and force evaluation takes over, Chrome's scaling disadvantage becomes apparent: the overhead peaks around 2$times$ at moderate $N$ and then gradually narrows to roughly 1.4$times$ at the largest workload, as GPU compute time increasingly dominates both platforms.
 
 #figure(
   table(
     columns: (auto, auto, auto, auto, auto),
     align: (right, right, right, right, right),
     [*N*], [*Native (ms)*], [*Chrome (ms)*], [*Overhead*], [*Native drift*],
-    [1,000], [7.04], [35.86], [5.1$times$], [$6.38 times 10^(-5)$],
-    [5,000], [7.87], [35.97], [4.6$times$], [$2.85 times 10^(-4)$],
-    [10,000], [10.25], [35.99], [3.5$times$], [$9.31 times 10^(-3)$],
-    [50,000], [67.53], [67.77], [1.0$times$], [$6.06 times 10^(-2)$],
-    [100,000], [182.85], [219.96], [1.2$times$], [$7.71 times 10^(-2)$],
+    [1,000], [5.86], [4.87], [0.8$times$], [$6.41 times 10^(-5)$],
+    [5,000], [7.35], [14.34], [2.0$times$], [$2.50 times 10^(-4)$],
+    [10,000], [11.00], [17.81], [1.6$times$], [$8.65 times 10^(-3)$],
+    [50,000], [65.46], [94.93], [1.5$times$], [$6.07 times 10^(-2)$],
+    [100,000], [180.11], [260.74], [1.4$times$], [$7.58 times 10^(-2)$],
   ),
-  caption: [Native (wgpu-native) vs browser (Chrome) wall-clock ms/step and energy drift. The browser overhead converges from 5.1$times$ at $N = 1000$ to 1.2$times$ at $N = 100000$.],
+  caption: [wgpu-native vs Chrome wall-clock ms/step and energy drift.],
 ) <tab:web-native>
 
-// TODO: regenerate fig_web_native.png with new data
-// #figure(
-//   image("../graphics/fig_web_native.png", width: 80%),
-//   caption: [Native vs browser execution time per step. The browser wall-clock includes a fixed asyncify event-loop overhead that becomes negligible at large $N$.],
-// ) <fig:web-native>
+#figure(
+  image("../graphics/fig_web_native.png", width: 80%),
+  caption: [Native vs browser execution time per step.],
+) <fig:web-native>
 
 == Numerical Quality
 
-Energy drift is reported as a secondary observation characterising the 32-bit precision floor of WebGPU rather than a primary research question. The opening angle sweep at $N = 5000$ (@tab:theta-sweep) shows identical drift ($Delta E \/ |E(0)| approx 1.84$) across all tested $theta$ values, confirming that 32-bit floating-point precision, not the tree approximation, is the dominant error source. Softening in the range 0.1–2.0 has no measurable effect on runtime and produces only modest variation in drift (1.82–2.00). Momentum is conserved to within 0.1% over 5,000 steps.
+Energy drift is reported as a secondary observation characterising the precision and approximation quality of the solver. The opening-angle sweep at $N = 5000$ (@tab:theta-sweep) shows that drift spans about two orders of magnitude across the tested $theta$ range. Larger opening angles admit more distant nodes into the force approximation, introducing greater truncation error. Runtime drops modestly as $theta$ increases, reflecting fewer node interactions per particle. Momentum is conserved to within 0.1% over 5,000 steps at all tested $theta$ values.
 
 #figure(
   table(
     columns: (auto, auto, auto),
     align: (right, right, right),
     [*$theta$*], [*Mean ms/step*], [*Final drift*],
-    [0.3], [3.46], [$1.84$],
-    [0.5], [3.65], [$1.84$],
-    [0.7], [3.66], [$1.84$],
-    [1.0], [3.49], [$1.84$],
+    [0.3], [9.30], [$2.67 times 10^(-4)$],
+    [0.5], [8.24], [$2.75 times 10^(-3)$],
+    [0.7], [7.57], [$9.77 times 10^(-3)$],
+    [1.0], [6.96], [$3.31 times 10^(-2)$],
   ),
-  caption: [Effect of opening angle $theta$ on runtime and energy drift (Plummer sphere, $N = 5000$). Drift is insensitive to $theta$, indicating 32-bit precision dominates.],
+  caption: [Effect of opening angle $theta$ on runtime and energy drift.],
 ) <tab:theta-sweep>
 
 == Summary of Findings
 
-Force evaluation accounts for 94–99% of step time, with the LBVH construction pipeline remaining below 1 ms even at $N = 100000$ (RQ1). The WebGPU abstraction overhead relative to native Metal is 2.4$times$ at $N = 1000$ but the WebGPU solver outperforms the Metal baseline at $N gt.eq 5000$, with substantial variation across WebGPU implementations (RQ2). Browser execution adds a fixed ~29 ms overhead that becomes negligible at large $N$, with Chrome matching native throughput at $N = 50000$ (RQ3). The 32-bit precision floor is the binding constraint on numerical fidelity. These findings are interpreted in the following discussion section.
+Force evaluation dominates step time at every particle count, while LBVH construction stays negligible (RQ1). The WebGPU abstraction layer adds measurable overhead only at small $N$; once GPU compute dominates, the solver matches or outperforms the native Metal baseline (RQ2). Browser deployment via Chrome is viable, with overhead converging to roughly 1.4$times$ at large workloads (RQ3). Energy drift depends on both the opening angle and 32-bit precision, spanning two orders of magnitude across the tested $theta$ range. These findings are interpreted in the following discussion section.
