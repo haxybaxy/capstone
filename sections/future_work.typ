@@ -2,7 +2,7 @@
 = Future Work
 #set heading(numbering: "1.1")
 
-The limitations discussed above point to several concrete next steps, each tied to a specific performance or capability goal.
+The limitations that have been discussed above point us to several concrete next steps, each tied to a certain performance or capability goal.
 
 == Adaptive Individual Timestepping
 

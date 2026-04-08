@@ -97,7 +97,7 @@ Swept: `--N` over {1000, 5000, 10000, 50000, 100000}, each run twice with `--for
 
 === Group 5: Native vs Browser
 
-Native runs use the same invocation as Group 2a. Browser runs use the Emscripten-compiled WebAssembly build served to a headless Chromium instance; timing is extracted from console-log timestamps.
+Native runs use the same invocation as Group 2a. Browser runs use the Emscripten-compiled WebAssembly build served to a Chrome instance, and timing is extracted from console-log timestamps.
 
 === Group 6: Cross-Backend Comparison
 
@@ -137,5 +137,5 @@ Swept: `--N` over {1000, 5000, 10000, 50000, 100000}. The `--benchmark-passes` f
     [6], [plummer], [1K–100K], [0.001], [0.75], [0.5], [tree], [150],
     [7], [plummer], [1K–100K], [0.001], [0.75], [0.5], [tree], [150],
   ),
-  caption: [Complete parameter table for all experiment groups. Ranges indicate the swept variable; all other parameters are held fixed. Group 4 runs both force methods at each $N$. Groups 5 and 6 repeat across execution platforms (see text). All runs use seed 42 and leapfrog integration.],
+  caption: [Complete parameter table for all experiment groups. Ranges indicate swept variables, while all other parameters are held fixed. Group 4 runs both force methods at each $N$. Groups 5 and 6 repeat across execution platforms.],
 ) <tab:all-experiments>

@@ -81,5 +81,5 @@
     blob((0, 9), text(size: 9pt)[_Diagnostics Readback_], tint: gray),
     node((1.5, 9), text(size: 8pt, fill: gray)[periodic], stroke: none),
   ),
-  caption: [Per-timestep GPU execution pipeline for the leapfrog integrator. All passes are recorded into a single command buffer. The LBVH build comprises six sub-passes with implicit barrier synchronisation between each. Diagnostics readback occurs at configurable intervals.],
+  caption: [Per-timestep GPU execution pipeline for the leapfrog integrator. All passes are recorded into a single command buffer.],
 ) <fig:timestep-pipeline>

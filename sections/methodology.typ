@@ -31,7 +31,7 @@ As discussed in the literature review, WebGPU is the only current GPU API that c
     [Native deployment], [Yes], [Yes], [No], [Yes],
     [64-bit GPU float], [Yes], [Varies], [No], [No],
   ),
-  caption: [Comparison of GPU compute APIs against criteria required for hierarchical $N$-body simulation. WebGPU is the only API that combines compute shader support with browser deployability.],
+  caption: [Comparison of GPU compute APIs against the criteria required for our cross-platform hierarchical $N$-body simulation.],
 ) <fig:platform-comparison>
 
 == Physical Model and State Representation
@@ -55,7 +55,7 @@ On the GPU, a particle's state is stored as packed four-component vectors (`vec4
     [`velocities[i]`], [$v_(x,i)$], [$v_(y,i)$], [$v_(z,i)$], [0],
     [`accelerations[i]`], [$a_(x,i)$], [$a_(y,i)$], [$a_(z,i)$], [0],
   ),
-  caption: [Particle state layout using `vec4<f32>` packing. Mass is stored in the $w$ component of the position vector to reduce buffer count and memory bandwidth during force evaluation.],
+  caption: [Particle state layout using `vec4<f32>` packing.],
 ) <fig:particle-layout>
 
 All GPU kernels run in 32-bit floating point, which maximises throughput and matches current WebGPU capabilities. Diagnostic quantities such as the total energy and linear momentum, are computed on the CPU in double precision (64-bit) to reduce accumulation error over long integrations. This split is a practical concession, since WebGPU does not support 64-bit GPU arithmetic @realitycheck.
@@ -95,7 +95,7 @@ Each internal node of the tree stores a total mass $M = sum_(i in "node") m_i$ a
     bold(a)_(i,"node") = G M frac(bold(R) - bold(r)_i, (||bold(R) - bold(r)_i||^2 + epsilon^2)^(3/2))
   $,
 )
-The classical Barnes–Hut algorithm uses an octree, where space is recursively divided into eight equal sub-cubes, producing a tree whose structure is determined by the spatial partition rather than the particles themselves. On a GPU, octrees are awkward, since each node has up to eight children, many of which may be empty, and the recursive top-down construction is inherently serial. A Bounding Volume Hierarchy (BVH) avoids both problems. A BVH is a binary tree in which each internal node stores an axis-aligned bounding box (AABB) that tightly encloses the particles in its subtree. Because the tree is binary (two children per node, not eight), traversal requires fewer branch decisions per level, and the total node count is fixed at $2N - 1$ regardless of the spatial distribution. Most importantly, a BVH can be built bottom-up from a sorted particle list in a fully parallel, non-recursive pipeline, which is the Linear BVH (LBVH) construction described below. The trade-off is that BVH bounding boxes can overlap (unlike octree cells, which partition space without gaps), so the opening criterion must use the actual node extent rather than a uniform cell width.
+The classical Barnes–Hut algorithm uses an octree, where space is recursively divided into eight equal sub-cubes, producing a tree whose structure is determined by the spatial partition rather than the particles themselves. On a GPU, octrees are awkward, since each node has up to eight children, many of which may be empty, and the recursive top-down construction is inherently serial. A Bounding Volume Hierarchy (BVH) avoids both problems. A BVH is a binary tree in which each internal node stores an axis-aligned bounding box (AABB) that encloses the particles in its subtree. Because the tree is binary, having 2 children per node instead of 8, traversal requires fewer branch decisions per level, and the total node count is fixed at $2N - 1$ regardless of the spatial distribution. Most importantly, a BVH can be built bottom-up from a sorted particle list in a fully parallel, non-recursive pipeline, which is the Linear BVH (LBVH) construction described below. The trade-off is that BVH bounding boxes can overlap, unlike octree cells, which partitions space without gaps, so the opening criterion must use the actual node extent rather than a uniform cell width.
 
 We implement the tree as a BVH constructed and traversed entirely on the GPU each timestep.
 
@@ -105,7 +105,7 @@ An internal node is accepted as a monopole when it is sufficiently small relativ
 
 #figure(
   image("../graphics/fig_opening_criterion.png", width: 100%),
-  caption: [Geometry of the opening criterion. A node is approximated as a monopole when its angular size, as measured by extent/$d$, falls below the threshold $theta$. Left: BVH variant using maximum AABB extent (this work). Right: classical octree variant using cell half-width, shown for comparison with the literature.],
+  caption: [Geometry of the opening criterion.],
 ) <fig:opening-criterion>
 
 == Software Architecture and Execution Modes
@@ -140,7 +140,7 @@ The Linear Bounding Volume Hierarchy is built fully on the GPU each timestep, fo
 
 #figure(
   image("../graphics/mortoncode.png", width: 70%),
-  caption: [Spatial binning via a Z-order (Morton) space-filling curve in 2D. The dotted red line traces the curve through the grid; after sorting by Morton code, spatially adjacent particles are stored contiguously in the sorted array (right). Adapted from Peláez @pelaez_thesis.],
+  caption: [Spatial binning via a Z-order (Morton) space-filling curve in 2D. The dotted red line traces the curve through the grid. Spatially adjacent particles are stored contiguously in the sorted array. Adapted from Peláez @pelaez_thesis.],
 ) <fig:morton-binning>
 
 + *Radix sort.* The Morton codes and their associated particle indices are sorted into ascending order using a parallel radix sort. The radix sort processes the 32-bit keys in four passes (8 bits per pass), performing a prefix-sum histogram within each pass to determine output positions. This approach was chosen over the bitonic sort network @batcher1968 used in an earlier version of the implementation, because radix sort achieves $O(N)$ work complexity for fixed-width keys and scales more predictably on GPU hardware. An alternative is the onesweep radix sort, which is the most performant variant on native GPU APIs, but its reliance on fine-grained device-scope atomic operations makes it difficult to implement efficiently in WebGPU, where atomics are limited to workgroup and storage-buffer scope.
@@ -182,16 +182,16 @@ We also tried two approaches that did not work. Near-far child ordering (pushing
     [50,000], [109.5], [67.2], [1.63$times$],
     [100,000], [396.2], [183.9], [2.15$times$],
   ),
-  caption: [Combined effect of all four traversal optimisations. The overhead of the compaction pass and sort-index lookup causes a small regression at $N = 1000$; the crossover where optimisations break even is approximately $N = 3000$.],
+  caption: [Combined effect of all four traversal optimisations.],
 ) <tab:optimisation>
 
 == Rendering and Interactive Operation
 
-In interactive mode, particles are rendered as instanced billboard quads with additive blending. The vertex shader reads positions directly from the physics storage buffers, avoiding per-frame data uploads. A toggleable trail effect improves visibility in sparse scenarios (e.g. the two-body orbit): a screen-space accumulation buffer reprojects the previous frame's trails into the current camera view, fades them by a configurable amount, and composites new particle positions on top with additive blending, using a ping-pong texture pair. An ImGui overlay (@fig:simscreen) provides interactive control of simulation parameters and displays real-time diagnostics. In headless mode, rendering is skipped entirely for pure throughput measurement.
+In interactive mode, particles are rendered as instanced billboard quads with additive blending. The vertex shader reads positions directly from the physics storage buffers, avoiding per-frame data uploads. A toggleable trail effect improves visibility in sparse scenarios (e.g. the two-body orbit): a screen-space accumulation buffer reprojects the previous frame's trails into the current camera view, fades them by a configurable amount, and composites new particle positions on top with additive blending, using a ping-pong texture pair. An ImGui overlay (@fig:simscreen) provides interactive control of parameters and displays diagnostics. In headless mode, rendering is skipped entirely.
 
 #figure(
   image("../graphics/simscreen.png", width: 85%),
-  caption: [Interactive mode showing the ImGui control overlay. Simulation parameters, timing diagnostics, and rendering options (including the particle trail effect) can be adjusted at runtime.],
+  caption: [Interactive mode showing the ImGui control overlay.],
 ) <fig:simscreen>
 
 == Initial Conditions and Benchmark Scenarios <sec:initial-conditions>
@@ -206,11 +206,11 @@ Scenario A places two equal-mass particles ($m = 1000$ each, $N = 2$) separated 
     v = sqrt(frac(G m d^2, 2 (d^2 + epsilon^2)^(3/2)))
   $,
 )
-This is the simplest possible validation of integrator correctness. With the right timestep and softening, the two particles should maintain a stable circular orbit indefinitely under leapfrog. We validate quantitatively, not visually: the energy drift $Delta E \/ |E(0)|$ over the full integration is measured directly, and any departures from circularity can be isolated without confounding effects from hierarchical force approximation at a large $N$.
+This is the simplest validation of integrator correctness. With the right timestep and softening, the two particles should maintain a stable circular orbit indefinitely under our leapfrog integrator. We can validate this quantitatively by measuring the energy drift over the full integration is measured directly, and any departures from the expected circularity can be isolated without confounding effects from hierarchical force approximation at a large $N$.
 
 === Scenario B: Plummer sphere
 
-A Plummer sphere is a spherically symmetric, self-gravitating stellar system with a density that falls off smoothly with distance from the centre. It was first introduced by Plummer @plummer1911 as an empirical fit to the light profiles of globular clusters, and its density profile is given by $rho(r) prop (1 + r^2 \/ a^2)^(-5\/2)$, where $a$ is a scale length that sets the size of the core. Because the Plummer model has known analytic properties, such as closed-form expressions for the potential, escape velocity, and distribution function, it is widely used as a standard test case for $N$-body codes @galacticdynamics2nded @aarseth1974. Deviations from the expected equilibrium behaviour provide a direct diagnostic of force accuracy and integration stability.
+A Plummer sphere is a spherically symmetric, self-gravitating stellar system with a density that falls off smoothly with distance from the centre. It was first introduced by Plummer @plummer1911 as an empirical fit to the light profiles of globular clusters, and its density profile is given by $rho(r) prop (1 + r^2 \/ a^2)^(-5\/2)$, where $a$ is a scale length that sets the size of the core. Because the Plummer model has known analytic properties, such as closed-form expressions for the potential, escape velocity, and distribution function, it is used as a standard test case for $N$-body codes @galacticdynamics2nded @aarseth1974. Deviations from the expected equilibrium behaviour give us a diagnostic of force accuracy and integration stability.
 
 Scenario B generates a Plummer sphere with $N in [10^3, 10^5]$ (depending on hardware) and scale length $a = 5$. Particle radii are sampled via the inverse cumulative distribution function
 #math.equation(
@@ -218,7 +218,7 @@ Scenario B generates a Plummer sphere with $N in [10^3, 10^5]$ (depending on har
     r = frac(a, sqrt(u^(-2\/3) - 1))
   $,
 )
-with $u$ clamped to $[0.001, 0.999]$. Angular coordinates are isotropic: $cos(theta)$ is drawn uniformly and the azimuthal angle $phi.alt$ is drawn uniformly on $[0, 2 pi)$. Particle speeds are sampled via rejection sampling using
+with $u$ clamped to $[0.001, 0.999]$. Angular coordinates are isotropic: $cos(theta)$ is drawn uniformly and the azimuthal angle $phi.alt$ is drawn uniformly on $[0, 2 pi)$. Particle speeds are sampled with rejection sampling using
 #math.equation(
   $
     g(q) = q^2 (1 - q^2)^(7/2)
@@ -242,7 +242,7 @@ Circular velocities are assigned using an approximate enclosed-mass estimate. Fo
     v = 0.5 sqrt(frac(M_"enclosed", r))
   $,
 )
-with the velocity directed tangentially. This simplified dynamical setup is not a full multi-component Milky Way model: the enclosed-mass estimate is approximate, and no bulge or halo component is included. Nevertheless, the disk geometry provides a morphologically rich test case in which the formation and persistence of spiral structure, bars, and other large-scale features serve as qualitative validation of the solver's long-term behavior. The key sweep variables are disk scale length, thickness, velocity dispersion, $theta$, and $Delta t$.
+with the velocity directed tangentially. This simplified dynamical setup is not a full multi-component Milky Way model: the enclosed-mass estimate is approximate, and no bulge or halo component is included. The disk geometry provides a morphologically rich test case where the formation of spiral structure, bars, and other large-scale features validate the solver's long term behavior qualitatively. The key sweep variables are disk scale length, thickness, velocity dispersion, $theta$, and $Delta t$.
 
 === Sampling and robustness across seeds
 
@@ -262,16 +262,16 @@ Because the initial conditions are stochastic, we assess robustness by repeating
       figure(image("../graphics/fig_scenario_c.png", width: 50%), caption: [_(c) Exponential disk_], numbering: none),
     ),
   ),
-  caption: [Initial particle distributions for the three benchmark scenarios. (a) two-body orbit. (b) Plummer sphere with $N = 10000$. (c) exponential disk with $N = 50000$.],
+  caption: [Initial particle distributions for the three benchmark scenarios with plummer at $N = 10000$ and exponential disk with $N = 50000$.],
 ) <fig:scenarios>
 
 == Evaluation Protocol <sec:evaluation-protocol>
 
 The evaluation compares the WebGPU solver against a native Metal baseline and across multiple WebGPU implementations, using a consistent benchmarking protocol throughout.
 
-The primary baseline is UniSim @unisim, which is an open-source galaxy simulator for a variety of integrators and backends, which we were able to use with Barnes–Hut and a Leapfrog integrator $N$-body solver written directly against the Metal API. The original UniSim contained a tree-serialisation bug: nodes were pushed bottom-up (leaves first, root last), but the GPU traversal kernel always began at index 0, which was a deep leaf rather than the root, causing most of the tree to be skipped during force evaluation. We patched the serialisation to reserve each node's slot before recursing into its children, placing the root at index 0 so that traversal covers the full tree @unisim-fork. UniSim runs on the same Apple M2 GPU with the same Metal driver as all four WebGPU implementations, so the performance difference isolates what the WebGPU abstraction layer costs. A direct $O(N^2)$ summation path within our solver serves as a secondary baseline for finding the crossover at which hierarchical force evaluation pays off.
+The primary baseline is UniSim @unisim, which is an open-source galaxy simulator for a variety of integrators and backends, which we were able to use with Barnes–Hut and a Leapfrog integrator $N$-body solver written directly against the Metal API. The original UniSim contained a tree-serialisation bug: nodes were pushed bottom-up (leaves first, root last), but the GPU traversal kernel always began at index 0, which was a deep leaf rather than the root, causing most of the tree to be skipped during force evaluation. We patched the serialisation to reserve each node's slot before recursing into its children, placing the root at index 0 so that traversal covers the full tree @unisim-fork. UniSim runs on the same Apple M2 GPU with the same Metal driver as all four WebGPU implementations, so the performance difference isolates what the WebGPU abstraction layer costs. We use the direct $O(N^2)$ summation path within our solver as a secondary baseline for finding the crossover at which hierarchical force evaluation pays off.
 
-The primary metric is runtime per timestep (ms/step), decomposed into three components: tree build time (GPU LBVH construction), force evaluation time (BVH traversal), and integration time (kick and drift dispatches). This decomposition reveals which phase dominates at each particle count. For the cross-backend comparison, we quantify abstraction overhead as the ratio of WebGPU ms/step to native Metal ms/step at matched $N$ and parameters. For the browser comparison, subtracting native GPU time from browser wall-clock time isolates the fixed per-step scheduling overhead.
+The primary metric is runtime per timestep (ms/step), decomposed into three components: tree build time with the GPU LBVH construction, force evaluation time with the BVH traversal, and integration time with the kick and drift dispatches. This decomposition reveals which phase takes up the most time at each particle count. For the cross-backend comparison, we quantify abstraction overhead as the ratio of WebGPU ms/step to native Metal ms/step at matched $N$ and parameters. For the browser comparison, subtracting native GPU time from browser wall-clock time isolates the fixed per-step scheduling overhead.
 
 Energy drift ($Delta E(t) = |E(t) - E(0)| \/ |E(0)|$) is reported as a secondary observation for $N lt.eq 5000$, where potential energy can be computed via direct pair summation. Momentum conservation is monitored throughout. These metrics characterise the 32-bit precision floor of WebGPU rather than constituting a primary research question.
 
