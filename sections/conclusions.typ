@@ -2,19 +2,19 @@
 = Conclusion
 #set heading(numbering: "1.1")
 
-We presented a hierarchical $N$-body solver for galactic dynamics, implemented entirely in WebGPU, with a fully GPU-resident Linear Bounding Volume Hierarchy (LBVH) constructed and traversed on-device each timestep. We evaluated it across three benchmark scenarios (two-body orbit, Plummer sphere, and rotating exponential disk) with systematic parameter sweeps targeting three research questions: scalability and pipeline bottlenecks, WebGPU abstraction overhead relative to native Metal, and browser feasibility. Numerical quality under 32-bit precision was characterised as a secondary observation throughout.
+We presented a hierarchical $N$-body solver for galactic dynamics implemented entirely in WebGPU, evaluated across three benchmark scenarios with systematic parameter sweeps targeting scalability, abstraction overhead relative to native Metal, and browser feasibility.
 
 == Scalability and Pipeline Bottlenecks (RQ1)
 
-Runtime grows from 5.86 ms per step at $N = 1000$ to 180.11 ms at $N = 100000$, with force evaluation accounting for 94–99% of step time. The LBVH construction pipeline stays below 0.35 ms even at $N = 100000$, with individual passes roughly constant in $N$; the BVH traversal shader is clearly the primary optimisation target. Direct $O(N^2)$ summation is faster at every tested particle count, but it accumulates far more energy drift: $Delta E = 2.01$ vs $0.076$ for the tree path at $N = 100000$. The hierarchical approach trades throughput for the force accuracy needed to keep simulations physically meaningful.
+Force evaluation accounts for 94–99% of step time across all tested particle counts, while LBVH construction remains negligible. The BVH traversal shader is therefore the primary optimisation target. Direct $O(N^2)$ summation is faster but accumulates far more energy drift, confirming that the hierarchical approach is necessary to keep simulations physically meaningful over many timesteps.
 
 == Abstraction Overhead (RQ2)
 
-Against a native Metal Barnes–Hut baseline (UniSim @unisim) on the same Apple M2, the WebGPU layer costs 2.0$times$ at $N = 1000$, where per-dispatch overhead dominates. At $N gt.eq 5000$ the WebGPU solver is consistently faster, reaching 2.9$times$ at $N = 100000$ (180.11 ms vs 516.78 ms), because the fully GPU-resident LBVH pipeline eliminates CPU–GPU coordination, not because WebGPU is inherently faster than Metal. A four-way comparison across WebGPU implementations (wgpu-native, Dawn, Chrome, Safari) shows large cross-implementation variation, consistent with Maczan @maczan2026: Dawn has the lowest per-dispatch overhead at small $N$; wgpu-native scales best to large $N$.
+The WebGPU solver matches or exceeds a native Metal Barnes–Hut baseline (UniSim @unisim) at $N gt.eq 5000$ on the same Apple M2, with the advantage widening at larger particle counts. This reflects implementation differences between the two solvers rather than an inherent platform advantage. A four-way comparison across WebGPU implementations confirms that backend choice alone produces substantial performance variation, consistent with Maczan @maczan2026.
 
 == Browser Feasibility (RQ3)
 
-Chrome's browser WebGPU implementation achieves lower per-dispatch overhead than wgpu-native at small $N$ (4.87 ms vs 5.86 ms at $N = 1000$, overhead 0.8$times$). As force evaluation dominates at larger particle counts, Chrome scales less efficiently: the overhead peaks at 2.0$times$ ($N = 5000$) and then gradually decreases to 1.4$times$ at $N = 100000$ (260.74 ms vs 180.11 ms). The overhead narrows with $N$ but does not vanish, indicating a scaling rather than a fixed-cost difference between platforms. Nevertheless, the browser sustains the same qualitative scaling behaviour as native execution, supporting WebGPU's viability for browser-based scientific simulation.
+Browser overhead converges to roughly 1.4$times$ at large particle counts, with the browser sustaining the same qualitative scaling behaviour as native execution. This supports WebGPU's viability for browser-based scientific simulation at scientifically relevant particle counts.
 
 == Contribution
 

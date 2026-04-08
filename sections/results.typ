@@ -165,4 +165,4 @@ Energy drift is reported as a secondary observation characterising the precision
 
 == Summary of Findings
 
-Force evaluation dominates step time at every particle count, while LBVH construction stays negligible (RQ1). The WebGPU abstraction layer adds measurable overhead only at small $N$; once GPU compute dominates, the solver matches or outperforms the native Metal baseline (RQ2). Browser deployment via Chrome is viable, with overhead converging to roughly 1.4$times$ at large workloads (RQ3). Energy drift depends on both the opening angle and 32-bit precision, spanning two orders of magnitude across the tested $theta$ range. These findings are interpreted in the following discussion section.
+The results across all three research questions are interpreted in the following discussion section.
