@@ -20,11 +20,11 @@ The choice of WebGPU as the compute platform is central to all three research qu
 
 The Barnes–Hut algorithm at $O(N log N)$ requires a full tree rebuild and traversal at every timestep, each involving operations over the entire particle set. At the particle counts targeted by this work ($N$ up to $10^5$), these operations are dominated by data-parallel phases: computing bounding boxes, sorting Morton codes, constructing tree topology, and evaluating forces across all particles simultaneously. This degree of parallelism makes GPU execution essential for interactive frame rates, a conclusion broadly supported by the literature on GPU-accelerated $N$-body simulation @fluke2011 @owens2007 @surveyofcomputation.
 
-The specific choice of WebGPU over established GPU APIs such as CUDA and OpenCL is motivated by three factors. First, WebGPU is a cross-platform compute and rendering API that exposes general-purpose compute shaders and storage buffers through a unified interface, running natively on Vulkan, Metal, and Direct3D 12 backends while also being deployable in web browsers @webgpu-spec @webgpu-gpuweb. This portability is central to the research objective of evaluating $N$-body simulation across diverse execution environments, from native desktop applications to browser-based deployments. Second, WebGPU's compute shader model provides the primitives required for tree-based algorithms: random-access storage buffer reads and writes, atomic operations for bottom-up aggregation, and flexible workgroup dispatch @usta_webgpu_2024 @realtimeclothsimulation. Third, WebGPU is an emerging W3C standard with active implementation across major browsers and native runtimes, positioning it as the successor to WebGL for GPU-accelerated web applications @realitycheck.
+The specific choice of WebGPU over established GPU APIs such as CUDA and OpenCL is motivated by three factors. First, WebGPU is a cross-platform compute and rendering API that exposes general-purpose compute shaders and storage buffers through a unified interface, running natively on Vulkan @vulkan-spec, Metal @metal-spec, and Direct3D 12 backends while also being deployable in web browsers @webgpu-spec @webgpu-gpuweb. This portability is central to the research objective of evaluating $N$-body simulation across diverse execution environments, from native desktop applications to browser-based deployments. Second, WebGPU's compute shader model provides the primitives required for tree-based algorithms: random-access storage buffer reads and writes, atomic operations for bottom-up aggregation, and flexible workgroup dispatch @usta_webgpu_2024 @realtimeclothsimulation. Third, WebGPU is an emerging W3C standard with active implementation across major browsers and native runtimes, positioning it as the successor to WebGL for GPU-accelerated web applications @realitycheck.
 
 These advantages are accompanied by constraints that inform the implementation design. GPU-side computation in WebGPU is limited to 32-bit floating-point arithmetic, imposing a precision ceiling on force evaluation and integration. Buffer size limits and memory allocation patterns vary across devices and backends. Scheduling overhead for compute dispatches can be significant relative to kernel execution time at small $N$, and device variability across integrated and discrete GPUs affects both performance and available features @realitycheck. These constraints are explicitly tested through the platform-feasibility research question.
 
-A comparative assessment of available GPU APIs clarifies the positioning of WebGPU. CUDA provides mature tooling and high performance for tree-based $N$-body codes @cudabarnes @bedorf2010, but is locked to NVIDIA hardware and has no browser deployment path. OpenCL offers cross-vendor support on desktop but lacks browser integration and has seen declining adoption in favour of vendor-specific APIs. WebGL provides broad browser reach but was designed for rendering, not general-purpose computation: it lacks compute shaders, storage buffers, and atomic operations, limiting it to fragment-shader workarounds for GPGPU tasks @terascalewebviz. WebGPU is uniquely positioned as both browser-deployable and compute-capable, making it the only viable API for evaluating an $N$-body solver across native and web environments from a single codebase.
+A comparative assessment of available GPU APIs clarifies the positioning of WebGPU. CUDA provides mature tooling and high performance for tree-based $N$-body codes @cudabarnes @bedorf2010, but is locked to NVIDIA hardware and has no browser deployment path. OpenCL offers cross-vendor support on desktop but lacks browser integration and has seen declining adoption in favour of vendor-specific APIs. WebGL provides broad browser reach but was designed for rendering, not general-purpose computation: it lacks compute shaders, storage buffers, and atomic operations, limiting it to fragment-shader workarounds for GPGPU tasks @terascalewebviz. WebGPU is uniquely positioned as both browser-deployable and compute-capable, making it the only viable API for evaluating an $N$-body solver across native and web environments from a single codebase. @fig:platform-comparison summarises this comparison.
 
 #figure(
   table(
@@ -44,19 +44,17 @@ A comparative assessment of available GPU APIs clarifies the positioning of WebG
 
 == Physical Model and State Representation
 
-=== Softened gravitational acceleration
+This section describes the gravitational force model, the GPU data layout for particle state, and the precision strategy that governs the split between GPU computation and CPU diagnostics.
 
-Each particle represents a mass element evolving under self-gravity in an isolated (open) domain. Using dimensionless units with $G = 1$, the softened acceleration of particle $i$ is
+Each particle represents a mass element evolving under self-gravity in an isolated (open) domain. The simulation adopts a natural unit system in which the gravitational constant $G = 1$, the unit of mass $M_0$ is defined by the total system mass, and the unit of length $r_0$ is set by the characteristic scale of the initial conditions (e.g., the Plummer scale length $a$ in Scenario B). Time is measured in units of $t_0 = sqrt(r_0^3 \/ (G M_0))$, the free-fall timescale of the system. All quantities reported in subsequent sections (energies, momenta, and timescales) are expressed in these natural units unless stated otherwise. The softened acceleration of particle $i$ due to all other particles is
 #math.equation(
   $
-    a_i = G sum_(j eq.not i) m_j frac(r_j - r_i, (||r_j - r_i||^2 + epsilon^2)^(3/2))
+    bold(a)_i = G sum_(j eq.not i) m_j frac(bold(r)_j - bold(r)_i, (||bold(r)_j - bold(r)_i||^2 + epsilon^2)^(3/2))
   $,
 )
-The softening parameter $epsilon$ (default 0.5, configurable) introduces a Plummer-type potential that suppresses the $1/r^2$ singularity at short range @galacticdynamics2nded. This formulation is equivalent to treating each particle as a Plummer sphere rather than a point mass, and the same softening kernel appears in the Plummer-model initial conditions used in Scenario B (see @sec:initial-conditions).
+where $bold(r)_i$ and $bold(r)_j$ are the position vectors of particles $i$ and $j$, $m_j$ is the mass of particle $j$, and $epsilon$ is a softening length (default 0.5, configurable). The softening parameter introduces a Plummer-type potential that suppresses the $1\/r^2$ singularity at short range, preventing divergent accelerations during close encounters @galacticdynamics2nded. This formulation is equivalent to treating each particle as a smooth mass distribution of characteristic radius $epsilon$ rather than a point mass.
 
-=== GPU-friendly mass packing
-
-To reduce memory bandwidth on the GPU, each particle's mass is stored in the $w$ component of its position vector, yielding a packed `vec4<f32>` layout of $(x, y, z, m)$ that avoids a dedicated mass buffer. Because GPU compute throughput is frequently limited by memory bandwidth rather than arithmetic capacity, this packing halves the number of buffer reads required during force evaluation compared to a separate position and mass layout.
+On the GPU, particle state is stored as packed four-component vectors (`vec4<f32>`), with each particle's mass occupying the $w$ component of its position vector to yield a layout of $(x, y, z, m)$. This packing reduces the number of buffer reads required during force evaluation compared to maintaining separate position and mass buffers. However, it also means the mass is fetched during phases that do not require it (such as tree construction), which represents a trade-off between force-evaluation bandwidth and overall memory traffic. The question of whether a Structure-of-Arrays (SoA) layout, which stores positions and masses in separate contiguous arrays, would reduce unnecessary bandwidth consumption during non-force phases remains an open question for future optimisation. @fig:particle-layout summarises the storage layout for all three state arrays.
 
 #figure(
   table(
@@ -70,66 +68,58 @@ To reduce memory bandwidth on the GPU, each particle's mass is stored in the $w$
   caption: [Particle state layout using `vec4<f32>` packing. Mass is stored in the $w$ component of the position vector to reduce buffer count and memory bandwidth during force evaluation.],
 ) <fig:particle-layout>
 
-=== Precision strategy
-
-GPU kernels operate in 32-bit floating point to maximize throughput and match typical WebGPU device capabilities. Diagnostic quantities (total energy and momentum) are computed on the CPU in double precision to reduce accumulation error in long-running integrations. This split reflects the practical precision-versus-performance trade-off inherent in WebGPU environments, where 64-bit GPU arithmetic is not available @realitycheck.
+All GPU kernels operate in 32-bit floating point, which maximises throughput and matches the capabilities of current WebGPU implementations. Diagnostic quantities (total energy and linear momentum) are computed on the CPU in double precision (64-bit) to reduce accumulation error over long integrations. This split reflects the practical precision-versus-performance trade-off inherent in WebGPU, where 64-bit GPU arithmetic is not available @realitycheck.
 
 == Time Integration
 
-=== Primary integrator: symplectic leapfrog (KDK)
+The solver supports two integration schemes: a symplectic leapfrog as the primary integrator and a forward Euler method as a baseline for comparison. Both operate with a fixed global timestep $Delta t$.
 
-The primary integration scheme is a fixed-timestep, second-order symplectic leapfrog (kick–drift–kick) @verlet1967. With timestep $Delta t$ (default 0.0001), the update sequence is:
-1. Half-kick:
+The primary scheme is the second-order symplectic leapfrog integrator in kick–drift–kick (KDK) form @verlet1967. In the following equations, the superscript $n$ denotes the discrete timestep index, and $bold(r)_i^n$, $bold(v)_i^n$, $bold(a)_i^n$ are the position, velocity, and acceleration vectors of particle $i$ at step $n$ respectively. With timestep $Delta t$ (default $10^(-4)$), the update proceeds in three stages. First, a half-kick advances velocities by half a step using the current accelerations:
 #math.equation(
   $
-    v_i^(n+1\/2) = v_i^(n) + frac(Delta t, 2) a_i^n
+    bold(v)_i^(n+1\/2) = bold(v)_i^(n) + frac(Delta t, 2) bold(a)_i^n
   $,
 )
-2. Drift:
+Next, a drift advances positions using the half-stepped velocities:
 #math.equation(
   $
-    r_i^(n+1) = r_i^(n) + Delta t v_i^(n+1\/2)
+    bold(r)_i^(n+1) = bold(r)_i^(n) + Delta t bold(v)_i^(n+1\/2)
   $,
 )
-3. Recompute acceleration $a_i^(n+1)$ using updated positions.
-4. Half-kick:
+Accelerations $bold(a)_i^(n+1)$ are then recomputed from the updated positions using the hierarchical force evaluation described in the following section. Finally, a second half-kick completes the velocity update:
 #math.equation(
   $
-    v_i^(n+1) = v_i^(n+1\/2) + frac(Delta t, 2) a_i^(n+1)
+    bold(v)_i^(n+1) = bold(v)_i^(n+1\/2) + frac(Delta t, 2) bold(a)_i^(n+1)
   $,
 )
 
-This choice is motivated by the well-known long-term stability advantages of symplectic schemes in gravitational dynamics @springel_2005. Unlike forward Euler, which introduces secular energy drift proportional to $Delta t$, the leapfrog scheme is time-reversible and exhibits bounded energy oscillation rather than monotonic growth, making it substantially more suitable for long-horizon integrations in Hamiltonian systems @galacticdynamics2nded. The energy conservation behavior of leapfrog relative to Euler is quantified in the evaluation protocol (see @sec:evaluation-protocol).
+The leapfrog scheme is chosen for its well-known long-term stability in gravitational dynamics @springel_2005. Unlike forward Euler, which introduces secular energy drift proportional to $Delta t$, the leapfrog is time-reversible and symplectic: it preserves the phase-space volume of the Hamiltonian system, producing bounded energy oscillations rather than monotonic growth @galacticdynamics2nded. These properties make it substantially more suitable for long-horizon integrations.
 
-=== Euler integrator (baseline and fallback)
-
-A forward Euler method is retained as `--integrator euler` to provide a stability baseline. Its update sequence is: tree build, force evaluation, then
+A forward Euler method is also implemented as a stability baseline. Its update sequence is
 #math.equation(
   $
-    v arrow.l v + a Delta t, space r arrow.l r + v Delta t
+    bold(v)_i^(n+1) = bold(v)_i^(n) + bold(a)_i^n Delta t, quad bold(r)_i^(n+1) = bold(r)_i^(n) + bold(v)_i^(n+1) Delta t
   $,
 )
-The Euler integrator serves as a lower bound on numerical quality against which the leapfrog scheme is compared.
+The Euler integrator serves as a lower bound on numerical quality against which the leapfrog scheme is compared. The energy conservation behaviour of both integrators is quantified in the evaluation protocol (see @sec:evaluation-protocol).
 
-The most expensive step in each integration cycle is the evaluation of accelerations, addressed through hierarchical approximation in the following section.
+The most expensive step in each integration cycle is the evaluation of accelerations $bold(a)_i$, which is addressed through hierarchical approximation in the following section.
 
 == Hierarchical Force Evaluation
 
-=== Monopole approximation
+Rather than computing all $N(N-1)\/2$ pairwise interactions directly, the solver groups distant particles into tree nodes and approximates each group by a single equivalent mass. This section describes the monopole approximation used to represent these groups and the opening criterion that determines when a node is sufficiently distant to be treated as a single body.
 
-Hierarchical evaluation approximates distant particle groups by a single monopole at the node's center of mass. For a node with total mass $M$ and center of mass $R$,
+Each internal node of the tree stores a total mass $M = sum_(i in "node") m_i$ and a center of mass $bold(R) = (sum_(i in "node") m_i bold(r)_i) \/ M$, computed by aggregating over all particles contained in that node's subtree. When a node is accepted as a monopole, its gravitational contribution to particle $i$ is
 #math.equation(
   $
-    a_(i,"node") = G M frac(R - r_i, (||R - r_i||^2 + epsilon^2)^(3/2))
+    bold(a)_(i,"node") = G M frac(bold(R) - bold(r)_i, (||bold(R) - bold(r)_i||^2 + epsilon^2)^(3/2))
   $,
 )
 This monopole approximation is used consistently across both tree topologies implemented in this work: a binary Bounding Volume Hierarchy (BVH) on the GPU and an eight-way octree on the CPU. Only the tree representation and the geometry of the opening criterion differ between the two paths.
 
-=== Opening criteria
+An internal node is accepted as a monopole when it is sufficiently small relative to its distance from the target particle. The GPU BVH path uses a tight axis-aligned bounding box (AABB) and tests whether the squared maximum extent of the node satisfies $"maxExtent"^2 \/ d^2 < theta^2$, where $"maxExtent" = max(Delta x, Delta y, Delta z)$ is derived from the node's AABB bounds. This extent-based criterion reflects the non-cubic node shapes that arise in a BVH more accurately than a uniform half-width. The CPU octree path uses the conventional half-width criterion $h^2 \/ d^2 < theta^2$, where $h$ is the half-width of the cubic octree cell and $d^2 = ||bold(r)_i - bold(R)||^2$. Both formulations are expressed in squared form to avoid a per-node square root. Salmon and Warren provide rigorous error bounds for these opening criteria, showing that the conventional Barnes–Hut criterion can admit unbounded errors for $theta >= 1\/3$ in pathological configurations @skeletons_1994.
 
-An internal node is accepted as a monopole approximation when it is sufficiently small relative to its distance from the target particle. The GPU BVH path uses a tight axis-aligned bounding box (AABB) and tests whether the squared maximum extent of the node satisfies $"maxExtent"^2 / d^2 < theta^2$, where $"maxExtent" = max(Delta x, Delta y, Delta z)$ is derived from the node's AABB bounds. This extent-based criterion reflects the non-cubic node shapes that arise in a BVH more accurately than a uniform half-width. The CPU octree path uses the conventional half-width criterion $h^2 / d^2 < theta^2$, where $h$ is the half-width of the cubic octree cell and $d^2 = ||r_i - R||^2$. Both formulations are expressed in squared form to avoid a per-node square root. Salmon and Warren provide rigorous error bounds for these opening criteria, showing that the conventional Barnes–Hut criterion can admit unbounded errors for $theta >= 1\/3$ in pathological configurations @skeletons_1994.
-
-The default opening angle $theta = 0.75$ is used as a practical balance between accuracy and performance. For comparison, GADGET-2 uses $theta$ values in the range 0.5 to 0.7 for cosmological simulations where higher force accuracy is required @springel_2005, while the original Barnes and Hut paper used $theta = 1.0$ @barneshut. The parameter sweeps in the evaluation protocol (see @sec:evaluation-protocol) systematically characterize the accuracy–performance trade-off across $theta in {0.3, 0.5, 0.7, 1.0}$.
+@fig:opening-criterion illustrates the geometry of both criteria. The default opening angle $theta = 0.75$ is used as a practical balance between accuracy and performance. For comparison, GADGET-2 uses $theta$ values in the range 0.5 to 0.7 for cosmological simulations where higher force accuracy is required @springel_2005, while the original Barnes and Hut paper used $theta = 1.0$ @barneshut. The parameter sweeps in the evaluation protocol (see @sec:evaluation-protocol) systematically characterize the accuracy–performance trade-off across $theta in {0.3, 0.5, 0.7, 1.0}$.
 
 #figure(
   image("../graphics/fig_opening_criterion.png", width: 100%),
@@ -138,9 +128,9 @@ The default opening angle $theta = 0.75$ is used as a practical balance between 
 
 == Software Architecture and Execution Modes
 
-The implementation is written in C++20 for host-side orchestration and physics, with WGSL for compute and rendering shaders, using the WebGPU C API directly without wrapper libraries. The build system uses CMake with FetchContent and pinned dependency versions to ensure deterministic builds. Dependencies fetched automatically include WebGPU-distribution (v0.2.0), GLFW (3.4), glfw3webgpu (v1.2.0), spdlog (v1.16.0), Dear ImGui (v1.90.9), and GLM (1.0.2). Three build backends are supported: `WGPU` (wgpu-native), `DAWN` (Dawn), and `EMSCRIPTEN` (browser build with `-sASYNCIFY`, `-sALLOW_MEMORY_GROWTH=1`, `-sUSE_GLFW=3`).
+The implementation is written in C++20 for host-side orchestration and physics, with WGSL for GPU compute and rendering shaders, using the WebGPU C API directly without wrapper libraries. The build system uses CMake with pinned dependency versions to ensure deterministic builds. Three build backends are supported: wgpu-native @wgpu-native (the Rust-based WebGPU implementation), Dawn @dawn (Google's WebGPU implementation), and Emscripten (which cross-compiles the C++ codebase to WebAssembly for browser deployment).
 
-The primary execution mode is GPU-primary: all physics operations (integration, tree construction, and force evaluation) are performed on the GPU each step. Diagnostic quantities are computed on the CPU only at configurable intervals through staging-buffer readback of positions and velocities, with the diagnostic frequency set to every 60 frames in interactive mode and every step or every 50 steps in headless mode depending on $N$. To support cross-checking and fallback behavior, CPU mirror arrays (`cpuPositions_`, `cpuVelocities_`, `cpuAccelerations_`) are retained and used by non-primary modes (Euler and CPU-tree leapfrog), where scalar CPU loops and a CPU octree are executed in parallel with the GPU path. This design yields two methodological advantages: first, no per-step CPU physics overhead in the primary mode, since the tree is built directly from GPU-resident particle state; second, cross-validation potential across runs, since selecting the CPU octree versus GPU BVH path provides two independent hierarchical implementations for comparative diagnostics.
+The primary execution mode is GPU-primary: all physics operations (integration, tree construction, and force evaluation) are performed entirely on the GPU each step. Diagnostic quantities (total energy and momentum) are computed on the CPU at configurable intervals by reading back positions and velocities through staging buffers. In this mode, no per-step CPU physics overhead is incurred, since the tree is built and traversed directly from GPU-resident particle state. A secondary execution mode provides an independent CPU code path: a conventional octree is built from CPU-side copies of the particle state, and forces are evaluated via scalar tree traversal in double precision. This CPU path is invoked as a separate run configuration rather than running simultaneously with the GPU, providing cross-validation by allowing the same initial conditions to be evaluated through two independent hierarchical implementations. @fig:system-architecture provides an overview of both execution paths.
 
 #figure(
   image("../graphics/fig_system_architecture.png", width: 80%),
@@ -151,75 +141,77 @@ The GPU-primary execution mode relies on a set of WebGPU compute shaders organiz
 
 == WebGPU Compute Methodology
 
-=== GPU data layout
+This section describes the GPU-side data layout, the compute shader organisation, and the per-timestep execution pipeline that together form the core of the solver.
 
-Simulation state is stored in WebGPU storage buffers using the packed `vec4<f32>` layout described in @fig:particle-layout: positions (with mass in the $w$ component), velocities, and accelerations. The BVH is stored as an array of `BVHNode` structures with $2N - 1$ entries (internal nodes indexed $0$ to $N - 2$, leaves indexed $N - 1$ to $2N - 2$), where each node stores a center of mass and a tight AABB. A flattened CPU octree buffer is maintained for fallback paths, using explicit child fields (`c0` through `c7`) to avoid dynamic indexing limitations in WGSL. A uniform parameters buffer shares layout-matched simulation parameters between C++ and WGSL. In-place updates are used throughout: there is no double buffering of positions, velocities, or accelerations. Correct ordering between compute passes relies on WebGPU's implicit storage-buffer synchronization between dispatches within a single command buffer submission, with bind groups recreated each frame.
+Simulation state is stored in WebGPU storage buffers using the packed `vec4<f32>` layout described in @fig:particle-layout: positions (with mass in the $w$ component), velocities, and accelerations. The BVH is stored as a flat array of $2N - 1$ node structures (internal nodes indexed $0$ to $N - 2$, leaves indexed $N - 1$ to $2N - 2$), where each node stores a center of mass and a tight axis-aligned bounding box (AABB). A uniform parameters buffer shares simulation parameters between host and shader code. In-place updates are used throughout: there is no double buffering of positions, velocities, or accelerations. Correct ordering between compute passes relies on WebGPU's implicit storage-buffer synchronisation between dispatches within a single command buffer submission. Bind groups are cached and reused across frames to avoid per-frame recreation overhead.
 
-=== Compute shaders
+The implementation comprises twelve WGSL compute shaders organised into two functional groups. The first group handles integration and force evaluation: a direct-summation baseline shader, an octree-traversal shader for the CPU-tree code path, the primary BVH-traversal force shader, and kick/drift and Euler integration shaders. The second group implements LBVH construction in seven passes: two-pass bounding-box reduction, Morton code generation @morton1966, radix sort, Karras topology construction @maximizeparallel, leaf initialisation, and bottom-up aggregation via atomic counters. Workgroup sizes are fixed per kernel (64 for force evaluation, 256 for integration and tree building) and are reported as part of the implementation configuration.
 
-The implementation comprises twelve WGSL compute shaders organized into two functional groups. The first group handles integration and force evaluation: a direct-summation baseline shader, an octree-traversal fallback shader, the primary BVH-traversal force shader, and kick/drift and Euler integration shaders. The second group implements LBVH construction in seven passes: two-pass bounding-box reduction, Morton code generation @morton1966, bitonic sort with multiple sub-passes @batcher1968, Karras topology construction @maximizeparallel, leaf initialization, and bottom-up aggregation via atomic counters. Workgroup sizes are fixed per kernel (64 for force evaluation, 256 for integration and tree building) and are reported as part of the implementation configuration.
+=== Per-timestep execution sequence
 
-=== Per-timestep execution sequence (GPU-primary leapfrog)
-
-Each timestep is recorded into a single command encoder and submitted as one command buffer. The six sequential passes are:
-1. Half-kick: $v arrow.l v + (a Delta t) / 2$
-2. Drift: $r arrow.l r + v Delta t$
-3. LBVH build (7 sub-passes):
-  - global AABB reduction
-  - Morton code generation
-  - bitonic sort
-  - Karras topology construction
-  - leaf initialization
-  - bottom-up aggregation
-4. BVH force evaluation: iterative traversal with fixed-depth explicit stack (depth 64, sufficient for all tested $N$)
-5. Half-kick: $v arrow.l v + (a Delta t) / 2$
-6. Diagnostics readback (periodic): stage-map-readback $arrow.r$ CPU double-precision energy and momentum computation
+Each timestep is recorded into a single command encoder and submitted as one command buffer. The six sequential passes, illustrated in @fig:timestep-pipeline, are: (1) a half-kick that advances velocities by $Delta t \/ 2$ using the current accelerations; (2) a drift that advances positions by $Delta t$ using the half-stepped velocities; (3) a full LBVH rebuild comprising seven sub-passes (global AABB reduction, Morton code generation, radix sort, Karras topology construction, leaf initialisation, and bottom-up aggregation); (4) BVH force evaluation, in which each particle traverses the tree iteratively using a fixed-depth explicit stack (depth 64, sufficient for all tested $N$); (5) a second half-kick that completes the velocity update; and (6) an optional diagnostics readback at configurable intervals, in which positions and velocities are copied to the CPU via staging buffers for double-precision energy and momentum computation.
 
 #figure(
   image("../graphics/fig_timestep_pipeline.png", width: 50%),
   caption: [Per-timestep GPU execution pipeline for the leapfrog integrator. All six passes are recorded into a single command buffer. The LBVH build (pass 3) comprises seven sub-passes with implicit barrier synchronization between each.],
 ) <fig:timestep-pipeline>
 
-=== GPU traversal (iterative, no recursion)
+=== GPU tree traversal
 
-Tree traversal is implemented iteratively in the BVH force shader. One GPU thread is assigned per particle. The thread maintains an explicit stack of node indices, beginning from the root. A node is either accepted (leaf or opening criterion satisfied) and accumulated via the monopole approximation, or expanded by pushing its children onto the stack. Fast inverse square root (`inverseSqrt`) is used for inverse-distance evaluation, and a self-interaction guard avoids contributions from degenerate near-zero distances. This approach preserves the Barnes–Hut approximation structure while accommodating GPU execution constraints and limiting branch divergence where possible @fastnbody @cudabarnes @maximizeparallel.
+Because GPU compute shaders do not support recursion, tree traversal is implemented iteratively in the BVH force shader. One GPU thread is assigned per particle, and the thread maintains an explicit stack of node indices (maximum depth 64), beginning from the root. At each step, a node is either accepted as a monopole (if it is a leaf, or if the opening criterion is satisfied) and its gravitational contribution is accumulated, or it is expanded by pushing its two children onto the stack. Fast inverse square root is used for inverse-distance evaluation, and a self-interaction guard avoids contributions from degenerate near-zero distances. This explicit-stack approach preserves the Barnes–Hut approximation structure while accommodating the lack of a call stack on GPU hardware and limiting branch divergence across threads within a workgroup @fastnbody @cudabarnes @maximizeparallel.
 
-=== GPU LBVH construction (Karras 2012)
+=== GPU LBVH construction
 
-The LBVH is built fully on-device in seven conceptual steps. First, a two-pass parallel reduction computes the global axis-aligned bounding box. Second, particle positions are normalized to a $[0, 1023]^3$ integer grid and their bits interleaved to produce 30-bit Morton codes @morton1966, which impose a spatial ordering along a space-filling Z-curve. Third, Morton codes and associated particle indices are sorted using a bitonic sort network @batcher1968 with multiple $(k, j)$ sub-passes and dynamic uniform offsets; arrays are padded to the next power of two, with sentinel codes assigned to padding elements. Fourth, the parallel binary tree topology is constructed using the Karras delta function (leading zeros of the XOR of adjacent codes, with tie-breaking for duplicates) @maximizeparallel. Fifth, leaves are initialized by mapping sorted indices to particle positions, masses, and point AABBs. Sixth, internal-node AABBs and centers of mass are aggregated bottom-up using atomic counters to ensure both children are processed before their parent. The resulting BVH is immediately traversable without CPU-side construction or upload, eliminating a per-step CPU bottleneck in the primary execution mode.
+The Linear Bounding Volume Hierarchy is built fully on the GPU each timestep, following the parallel construction method of Karras @maximizeparallel. The construction proceeds through seven compute dispatches, illustrated in @fig:lbvh-pipeline:
+
++ *Global bounding box reduction.* A two-pass parallel reduction over all particle positions computes the axis-aligned bounding box of the entire system. This bounding box defines the coordinate range used to normalise positions in the next step.
+
++ *Morton code generation.* Each particle's position is normalised to a $[0, 1023]^3$ integer grid within the global bounding box, and the three 10-bit integer coordinates are interleaved to produce a single 30-bit Morton code @morton1966. The Morton code maps a three-dimensional position to a one-dimensional index along a Z-order (Morton) space-filling curve, so that particles that are spatially close in 3D tend to receive numerically similar codes.
+
++ *Radix sort.* The Morton codes and their associated particle indices are sorted into ascending order using a parallel radix sort. The radix sort processes the 30-bit keys in fixed-width digit passes (4 bits per pass), performing a prefix-sum histogram within each pass to determine output positions. This approach was chosen over the bitonic sort network @batcher1968 used in an earlier version of the implementation, because radix sort achieves $O(N)$ work complexity for fixed-width keys and scales more predictably on GPU hardware. An alternative is the onesweep radix sort, which is the most performant variant on native GPU APIs, but its reliance on fine-grained device-scope atomic operations makes it difficult to implement efficiently in WebGPU, where atomics are limited to workgroup and storage-buffer scope.
+
++ *Karras topology construction.* The sorted Morton codes define a binary radix tree whose internal structure is determined entirely by the codes themselves. For each internal node $i$, the Karras algorithm computes a direction and range by examining the _delta function_ $delta(i, j)$, defined as the number of leading zero bits in the bitwise XOR of Morton codes $k_i$ and $k_j$. Two codes that share a long common prefix (high $delta$) correspond to particles that are spatially close, because their Morton codes agree on the most significant bits of their interleaved coordinates. The algorithm determines each internal node's children by finding the split position within its range where the common prefix length changes. Duplicate Morton codes (which arise when two particles fall in the same grid cell) are handled by appending the particle index as a tie-breaker to ensure a unique ordering @maximizeparallel.
+
++ *Leaf initialisation.* Each leaf node is assigned the position, mass, and a point AABB corresponding to its sorted particle.
+
++ *Bottom-up aggregation.* Internal-node bounding boxes and centres of mass are computed in a bottom-up pass. An atomic counter per internal node tracks how many of its two children have been processed; the second thread to arrive at a node computes the merged AABB and mass-weighted centre of mass from both children, ensuring correctness without explicit synchronisation barriers.
+
+The resulting BVH is immediately traversable without any CPU-side construction or data upload, eliminating what would otherwise be a per-step CPU–GPU transfer bottleneck.
 
 #figure(
   image("../graphics/fig_lbvh_pipeline.png", width: 45%),
   caption: [LBVH construction pipeline. Seven compute dispatches build the tree entirely on-device. Each arrow represents an implicit storage-buffer barrier. The atomic-counter aggregation in pass 6 ensures correct bottom-up propagation of bounding boxes and centers of mass.],
 ) <fig:lbvh-pipeline>
 
-=== CPU octree construction (fallback paths)
+=== CPU octree construction
 
-The CPU octree is used only by Euler and CPU-tree leapfrog modes. It is built from CPU mirror arrays by computing a bounding box, inserting particles via octant selection, propagating centers of mass bottom-up, and optionally flattening to a GPU-friendly node array when GPU evaluation is used. GPU buffers auto-resize during uploads when needed.
+The CPU octree provides an alternative tree topology used by the Euler and CPU-tree leapfrog execution modes. It is built by computing a bounding box, inserting particles into octants, and propagating centres of mass and bounding boxes bottom-up. When GPU-side force evaluation is selected for the CPU-tree path, the octree is flattened into a contiguous node array and uploaded to a storage buffer.
 
 == Rendering and Interactive Operation
 
-For visualization, particles are rendered as instanced billboard quads with additive blending. Positions and colors are read directly from storage buffers via `@builtin(instance_index)`, requiring no separate vertex buffer. Depth testing is enabled with depth writes disabled; fragments are masked to a circular footprint with a soft alpha falloff. An ImGui overlay provides interactive control of simulation parameters ($theta$, $Delta t$, $epsilon$, and integrator selection) and displays real-time diagnostics including energy, momentum, and per-component timing breakdowns. In headless mode, the rendering pipeline is skipped entirely and the simulation loop runs without any presentation overhead, enabling pure throughput measurement. Rendering is a presentation layer and does not alter the simulation state.
+In interactive mode, particles are rendered as instanced billboard quads using additive blending, with each quad textured as a soft circular point. The vertex shader reads particle positions directly from the same GPU storage buffers used by the physics pipeline, indexed by the draw-call instance index, so no CPU-side vertex buffer upload is required per frame. An ImGui overlay provides interactive control of simulation parameters ($theta$, $Delta t$, $epsilon$, and integrator selection) and displays real-time diagnostics including energy, momentum, and per-component timing breakdowns. In headless mode, the rendering pipeline is skipped entirely and the simulation loop runs without any presentation overhead, enabling pure throughput measurement. Rendering is a presentation layer and does not alter the simulation state.
 
 Having described the solver and its implementation, the following section specifies the benchmark scenarios used to evaluate it.
 
 == Initial Conditions and Benchmark Scenarios <sec:initial-conditions>
 
-No external astronomical datasets are used. All experiments are generated from synthetic initial conditions and produce derived outputs (trajectories, diagnostic scalars, and timing logs). This  enables controlled, repeatable comparisons across parameter sweeps. Each experiment is fully specified by command-line parameters: scenario type, seed, $N$, $Delta t$, $theta$, softening $epsilon$, and step count.
+No external astronomical datasets are used. All experiments are generated from synthetic initial conditions and produce derived outputs (trajectories, diagnostic scalars, and timing logs). This enables controlled, repeatable comparisons across parameter sweeps. Each experiment is fully specified by its simulation parameters: scenario type, seed, $N$, $Delta t$, $theta$, softening $epsilon$, and step count. Three benchmark scenarios are defined, with initial particle distributions shown in @fig:scenarios.
 
-=== Scenario A: two-body orbit (sanity check)
+=== Scenario A: two-body circular orbit
 
-Scenario A places two equal-mass particles ($m = 1000$ each, $N = 2$ enforced regardless of the `--N` parameter) separated by $d = 10$ units along the $x$-axis, with tangential velocities along the $z$-axis computed for a softened circular orbit:
+Scenario A places two equal-mass particles ($m = 1000$ each, $N = 2$) separated by $d = 10$ units along the $x$-axis, with tangential velocities along the $z$-axis computed for a softened circular orbit:
 #math.equation(
   $
     v = sqrt(frac(G m d^2, 2 (d^2 + epsilon^2)^(3/2)))
   $,
 )
-This configuration provides the simplest possible validation of integrator correctness. With the correct timestep and softening, the two particles should maintain a stable circular orbit indefinitely under the leapfrog scheme. Departures from circularity provide a direct diagnostic for integration error, and the sensitivity to $Delta t$ and $epsilon$ can be isolated without confounding effects from hierarchical force approximation. The scenario is not representative of large-$N$ hierarchical behavior, but it is an essential sanity check that must pass before more complex scenarios are credible.
+This configuration provides the simplest possible validation of integrator correctness: with the correct timestep and softening, the two particles should maintain a stable circular orbit indefinitely under the leapfrog scheme. Validation is quantitative rather than visual: the energy drift $Delta E \/ |E(0)|$ over the full integration is measured directly, and departures from circularity can be isolated without confounding effects from hierarchical force approximation at large $N$.
 
-=== Scenario B: Plummer sphere (spherical equilibrium test)
+=== Scenario B: Plummer sphere
 
-Scenario B generates a Plummer sphere @plummer1911 @aarseth1974 with $N in [10^3, 10^5]$ (depending on hardware) and scale length $a = 5$. The Plummer model is a classical self-gravitating equilibrium configuration in which the density profile follows $rho(r) prop (1 + r^2 / a^2)^(-5/2)$, and it is widely used as a test case for $N$-body codes because of its known analytic properties @galacticdynamics2nded. Particle radii are sampled via the inverse cumulative distribution function
+A Plummer sphere is a spherically symmetric, self-gravitating stellar system whose density falls off smoothly with distance from the centre. It was first introduced by Plummer @plummer1911 as an empirical fit to the light profiles of globular clusters, and its density profile is given by $rho(r) prop (1 + r^2 \/ a^2)^(-5\/2)$, where $a$ is a scale length that sets the size of the core. Because the Plummer model has known analytic properties — including closed-form expressions for the potential, escape velocity, and distribution function — it is widely used as a standard test case for $N$-body codes @galacticdynamics2nded @aarseth1974. Deviations from the expected equilibrium behaviour provide a direct diagnostic of force accuracy and integration stability.
+
+Scenario B generates a Plummer sphere with $N in [10^3, 10^5]$ (depending on hardware) and scale length $a = 5$. Particle radii are sampled via the inverse cumulative distribution function
 #math.equation(
   $
     r = frac(a, sqrt(u^(-2\/3) - 1))
@@ -253,7 +245,7 @@ with the velocity directed tangentially. This simplified dynamical setup is not 
 
 === Sampling and robustness across seeds
 
-Because initial conditions are stochastic, robustness is assessed by repeating runs with different seeds (`--seed 1`, `--seed 2`, and so on) and comparing diagnostics and timing. Initial condition generation uses `std::mt19937` seeded by the `--seed` parameter (default 42), ensuring deterministic reproduction of particle distributions and velocities. Runs are considered valid if they complete without NaN or overflow values and produce consistent parameter logs. Deliberately unstable configurations (such as excessively large $Delta t$) are retained as documented failures for robustness reporting rather than silently excluded.
+Because initial conditions are stochastic, robustness is assessed by repeating runs with different random seeds and comparing diagnostics and timing. Runs are considered valid if they complete without NaN or overflow values and produce consistent parameter logs. Deliberately unstable configurations (such as excessively large $Delta t$) are retained as documented failures for robustness reporting rather than silently excluded.
 
 #figure(
   grid(
@@ -268,27 +260,17 @@ Because initial conditions are stochastic, robustness is assessed by repeating r
 
 == Evaluation Protocol: Baselines, Metrics, and Parameter Sweeps <sec:evaluation-protocol>
 
-=== Baselines
+Two baselines are used. The first is a direct $O(N^2)$ summation, which serves as a reference computation path for small $N$. Potential energy is computed by direct pair summation only when $N lt.eq 5000$ due to its $O(N^2)$ cost. The second baseline is the forward Euler integrator, which provides a numerical stability reference against which the leapfrog scheme is compared.
 
-Two baselines are used. The first is a direct $O(N^2)$ summation, which serves as a reference computation path for small $N$. Potential energy is computed by direct pair summation only when $N lt.eq 5000$ due to its $O(N^2)$ cost. The second baseline is the forward Euler integrator (`--integrator euler`), which provides a numerical stability reference against which the leapfrog scheme is compared.
-
-=== Primary metrics
+=== Metrics
 
 Runtime per timestep (measured in milliseconds per step using `std::chrono::high_resolution_clock`) is decomposed into three components: tree build time (GPU LBVH construction or CPU octree construction plus upload), force evaluation time (GPU BVH traversal or CPU Barnes–Hut walk), and integration time (kick and drift dispatches, including any CPU mirror loops on fallback paths). This decomposition identifies which phase dominates at each particle count and reveals the tree-build fraction, which is a key indicator of the overhead introduced by per-step hierarchy construction.
 
 Scaling with particle count is characterized by measuring total and per-component runtimes across a range of $N$ values for both hierarchical and direct modes, producing empirical scaling curves that are compared against the expected $O(N log N)$ and $O(N^2)$ asymptotic behavior. Long-term stability is assessed through energy drift, defined as $Delta E(t) = ( |E(t) - E(0)| ) / ( |E(0)| )$, reported only for $N lt.eq 5000$ where potential energy is computed via direct pair summation. For larger $N$, stability is assessed through kinetic energy trends and momentum diagnostics.
 
-=== Secondary metrics
+Linear momentum magnitude $||bold(P)(t)|| = ||sum_i m_i bold(v)_i||$ is computed in double precision and is expected to remain near zero for symmetric initial conditions (Plummer sphere) while reflecting the net angular momentum of the disk scenario. Qualitative morphology in disk runs (persistence of spiral arms, bar formation, and overall structural evolution) is reported descriptively as a complement to quantitative diagnostics.
 
-Linear momentum magnitude $||P(t)|| = ||sum_i m_i v_i||$ is computed in double precision and is expected to remain near zero for symmetric initial conditions (Plummer sphere) while reflecting the net angular momentum of the disk scenario. Qualitative morphology in disk runs (persistence of spiral arms, bar formation, and overall structural evolution) is reported descriptively as a complement to quantitative diagnostics, providing a visual sanity check on solver behavior over long integration times.
-
-=== Parameter sweeps
-
-To characterize accuracy–performance trade-offs and stability regimes, controlled parameter sweeps are performed via the command-line interface. The opening angle $theta$ is swept over ${0.3, 0.5, 0.7, 1.0}$, the timestep $Delta t$ is varied across a scenario-dependent stable range, and the softening parameter $epsilon$ is tested across representative values. Each sweep also compares the Euler and leapfrog integrators and the CPU octree versus GPU LBVH construction paths. Results are compared using exported CSV logs containing per-step diagnostics and timing.
-
-=== Error analysis procedure
-
-When instability or anomalous drift occurs, runs are inspected for correlations with dense versus diffuse particle regions, large $theta$, large $Delta t$, small $epsilon$, and platform or backend differences. Failures (NaN values, overflow, and extreme velocities) are detected explicitly and logged rather than silently suppressed.
+To characterise accuracy–performance trade-offs and stability regimes, controlled parameter sweeps are performed. The opening angle $theta$ is swept over ${0.3, 0.5, 0.7, 1.0}$, the timestep $Delta t$ is varied across a scenario-dependent stable range, and the softening parameter $epsilon$ is tested across representative values. Each sweep also compares the Euler and leapfrog integrators and the CPU octree versus GPU LBVH construction paths. When instability or anomalous drift occurs, runs are inspected for correlations with dense versus diffuse particle regions, large $theta$, large $Delta t$, small $epsilon$, and platform or backend differences. Failures (NaN values, overflow, and extreme velocities) are detected explicitly and logged rather than silently suppressed.
 
 === Comparative positioning
 
@@ -300,12 +282,10 @@ Beyond the quantitative metrics, the methodology incorporates several validation
 
 The validation strategy rests on three pillars: theoretical grounding, empirical checks, and explicit acknowledgment of practical constraints. On the theoretical side, the Barnes–Hut hierarchical approximation with tunable opening angle $theta$ follows Barnes and Hut @barneshut, the leapfrog integration scheme is a standard choice for long-horizon gravitational dynamics due to its symplectic stability properties @springel_2005, the GPU hierarchy construction follows the widely used parallel LBVH method of Karras @maximizeparallel, and the GPU traversal methodology follows established considerations for irregular tree algorithms on SIMD-style hardware @cudabarnes @fastnbody.
 
-Empirical validation is provided at multiple levels. Scenario A (two-body orbit) offers a controlled sanity check for orbit stability and integrator correctness, where deviations from the analytic circular orbit can be directly measured. Deterministic seeds and complete parameter logging ensure that any run can be exactly reproduced. Fixed step counts (`--steps`) provide consistent comparison across runs, and instability events are recorded rather than filtered. The availability of both CPU octree and GPU BVH execution paths allows cross-validation of force evaluation results for the same initial conditions.
+Empirical validation is provided at multiple levels. Scenario A (two-body orbit) offers a controlled check for orbit stability and integrator correctness, where energy drift from the analytic circular orbit is measured quantitatively. Deterministic seeds and complete parameter logging ensure that any run can be exactly reproduced, and instability events are recorded rather than filtered. The availability of both CPU octree and GPU BVH execution paths allows cross-validation of force evaluation results for the same initial conditions.
 
 Practical constraints are explicitly acknowledged. Interactive runs couple stepping to the render loop, while headless mode prioritizes throughput. Particle count is adjustable from 2 to 100,000. Potential energy tracking is intentionally limited to $N lt.eq 5000$ to avoid prohibitive $O(N^2)$ overhead; for larger $N$, stability is assessed through kinetic energy and momentum diagnostics combined with qualitative morphological assessment. These precision and buffer constraints connect directly to the WebGPU platform limitations described in the platform justification section, where 32-bit arithmetic and device variability were identified as fundamental characteristics of the target environment.
 
 == Reproducibility and Traceability
 
-Reproducibility of build and configuration is ensured through several mechanisms. Initial condition generation uses `std::mt19937` with the seed recorded at startup (default 42), producing deterministic particle distributions and velocities for any given parameter set. All third-party dependency versions are pinned through CMake FetchContent, and the complete set of CLI parameters is logged at startup via spdlog alongside the GPU adapter name and selected WebGPU backend, creating a full record of the execution environment for each run.
-
-Output reproducibility and cross-environment comparison are supported by the CSV export format, which records per-step diagnostics and timing: step number, simulation time, kinetic energy, potential energy (when $N lt.eq 5000$), total energy, energy drift, momentum components ($p_x$, $p_y$, $p_z$), tree-build time, force-evaluation time, and integration time. The dual build targets (native and browser) are produced from the same source code, enabling direct cross-environment comparison of both numerical results and performance characteristics under identical simulation parameters.
+All initial conditions are generated deterministically using a seeded pseudo-random number generator (seed recorded at startup, default 42), ensuring that any run can be exactly reproduced given the same parameters. The execution environment (GPU adapter name, WebGPU backend, and build configuration) is recorded alongside each run. Output is exported as CSV files recording per-step diagnostics and timing: step number, simulation time, kinetic energy, potential energy (when $N lt.eq 5000$), total energy, energy drift, momentum components ($p_x$, $p_y$, $p_z$), tree-build time, force-evaluation time, and integration time. Because the native and browser builds are produced from the same source code, this format enables direct cross-environment comparison of both numerical results and performance characteristics under identical simulation parameters.
