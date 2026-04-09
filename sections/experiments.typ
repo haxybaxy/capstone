@@ -72,18 +72,6 @@ Sub-groups 2b, 2c, and 2e isolate the effects of individual parameters at fixed 
 
 The disk scenario targets large-$N$ scalability and qualitative morphological assessment. Sub-group 3a scales $N$ over ${1000, 5000, 10000, 50000, 100000}$ with default parameters and 150 steps each, measuring runtime scaling and timing decomposition. Morphological evolution (spiral arm formation, bar instability) is assessed through interactive-mode visualisation at selected timesteps (@fig:disk-evolution).
 
-#figure(
-  grid(
-    columns: 2,
-    gutter: 12pt,
-    figure(image("../assets/disk_step1.png", width: 100%), caption: [Timestep 1], numbering: none),
-    figure(image("../assets/disk_step5.png", width: 100%), caption: [Timestep 5], numbering: none),
-    figure(image("../assets/disk_step20.png", width: 100%), caption: [Timestep  Step 20], numbering: none),
-    figure(image("../assets/disk_step50.png", width: 100%), caption: [Timestep  Step 50], numbering: none),
-  ),
-  caption: [Morphological evolution of the rotating exponential disk.],
-) <fig:disk-evolution>
-
 === Group 4: Direct vs Tree Crossover
 
 To identify the particle count at which hierarchical force evaluation becomes faster than direct $O(N^2)$ summation, this group runs both the direct summation and tree-based force evaluation at $N in {100, 200, 500, 1000, 2000, 5000}$ using the Plummer sphere scenario. Each configuration runs for 500 steps with default physics parameters.

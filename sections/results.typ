@@ -54,6 +54,36 @@ Force evaluation accounts for nearly all step time at every particle count teste
   caption: [Stacked bar chart of LBVH construction passes at each $N$.],
 ) <fig:lbvh-breakdown>
 
+=== Disk Scenario Scaling
+
+@tab:disk-scaling presents the same timing decomposition for the rotating exponential disk scenario. The force-dominated scaling pattern holds: force evaluation accounts for 92–99% of step time, and tree construction remains under 0.5 ms. The disk is slightly slower than the Plummer sphere at the same $N$ (218 ms vs 180 ms at $N = 100000$), likely due to the non-uniform spatial distribution producing a less balanced BVH.
+
+#figure(
+  table(
+    columns: (auto, auto, auto, auto, auto),
+    align: (right, right, right, right, right),
+    [*N*], [*ms/step*], [*Tree (ms)*], [*Force (ms)*], [*Integrate (ms)*],
+    [1,000], [7.42], [0.50], [6.86], [0.06],
+    [5,000], [7.52], [0.20], [7.29], [0.02],
+    [10,000], [12.86], [0.45], [12.35], [0.05],
+    [50,000], [76.26], [0.25], [75.99], [0.02],
+    [100,000], [217.95], [0.29], [217.63], [0.03],
+  ),
+  caption: [Disk scenario: performance summary with timing decomposition.],
+) <tab:disk-scaling>
+
+#figure(
+  grid(
+    columns: 2,
+    gutter: 12pt,
+    figure(image("../assets/disk_step1.png", width: 100%), caption: [_(a)_ Step 1], numbering: none),
+    figure(image("../assets/disk_step5.png", width: 100%), caption: [_(b)_ Step 5], numbering: none),
+    figure(image("../assets/disk_step20.png", width: 100%), caption: [_(c)_ Step 20], numbering: none),
+    figure(image("../assets/disk_step50.png", width: 100%), caption: [_(d)_ Step 50], numbering: none),
+  ),
+  caption: [Morphological evolution of the rotating exponential disk.],
+) <fig:disk-evolution>
+
 === Direct vs Tree: Speed–Accuracy Trade-off
 
 @tab:crossover compares runtime and energy drift between direct $O(N^2)$ summation and the tree-based $O(N log N)$ path. Direct summation is faster at all tested particle counts; its regular, branch-free access pattern maps well onto the GPU. The tree path, however, drifts roughly 26 times less at the largest $N$ tested, and this gap widens with particle count. The real crossover is not runtime but _accuracy_: the tree path trades throughput for the force accuracy needed to keep the simulation physically meaningful.
@@ -162,6 +192,58 @@ Energy drift is reported as a secondary observation characterising the precision
   ),
   caption: [Effect of opening angle $theta$ on runtime and energy drift.],
 ) <tab:theta-sweep>
+
+=== Two-Body Orbit Validation
+
+The two-body circular orbit (@tab:twobody-validation) confirms integrator correctness: energy drift remains below $10^(-5)$ across all tested timesteps, and momentum is conserved to machine precision. The orbit stays stable over 5,000 steps at every $Delta t$ value.
+
+#figure(
+  table(
+    columns: (auto, auto, auto),
+    align: (right, right, right),
+    [*$Delta t$*], [*Final drift*], [*$|bold(p)|$*],
+    [0.0001], [$3.14 times 10^(-6)$], [$0.00$],
+    [0.0005], [$2.42 times 10^(-6)$], [$0.00$],
+    [0.001], [$3.80 times 10^(-6)$], [$0.00$],
+    [0.005], [$9.20 times 10^(-6)$], [$0.00$],
+  ),
+  caption: [Two-body orbit: energy drift and momentum conservation across $Delta t$.],
+) <tab:twobody-validation>
+
+=== Timestep Sensitivity
+
+@tab:dt-sweep shows the effect of $Delta t$ on energy drift at fixed $N = 5000$. Drift increases roughly tenfold from $Delta t = 0.0001$ to $Delta t = 0.005$, while runtime is unaffected at fixed particle count.
+
+#figure(
+  table(
+    columns: (auto, auto, auto),
+    align: (right, right, right),
+    [*$Delta t$*], [*Mean ms/step*], [*Final drift*],
+    [0.0001], [7.33], [$2.59 times 10^(-3)$],
+    [0.0005], [7.42], [$9.53 times 10^(-3)$],
+    [0.001], [7.66], [$1.32 times 10^(-2)$],
+    [0.005], [7.66], [$2.73 times 10^(-2)$],
+  ),
+  caption: [Effect of timestep $Delta t$ on runtime and energy drift.],
+) <tab:dt-sweep>
+
+=== Softening Sensitivity
+
+@tab:softening-sweep shows the effect of the Plummer softening parameter $epsilon$ on energy drift at fixed $N = 5000$. Drift is relatively stable across the tested range, but tight softening ($epsilon = 0.1$) increases runtime noticeably, as closer particle interactions produce deeper BVH traversals.
+
+#figure(
+  table(
+    columns: (auto, auto, auto),
+    align: (right, right, right),
+    [*$epsilon$*], [*Mean ms/step*], [*Final drift*],
+    [0.1], [12.84], [$1.15 times 10^(-2)$],
+    [0.25], [7.47], [$1.16 times 10^(-2)$],
+    [0.5], [7.49], [$1.26 times 10^(-2)$],
+    [1.0], [7.70], [$1.55 times 10^(-2)$],
+    [2.0], [7.58], [$1.59 times 10^(-2)$],
+  ),
+  caption: [Effect of softening $epsilon$ on runtime and energy drift.],
+) <tab:softening-sweep>
 
 == Summary of Findings
 
