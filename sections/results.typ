@@ -25,7 +25,7 @@ Results are organised by research question as follows: scalability and pipeline 
 ) <tab:performance-summary>
 
 #figure(
-  image("../graphics/fig_n_scaling_plummer.png", width: 80%),
+  image("../assets/fig_n_scaling_plummer.png", width: 80%),
   caption: [Mean runtime per timestep as a function of $N$.],
 ) <fig:n-scaling-plummer>
 
@@ -103,7 +103,7 @@ Force evaluation accounts for nearly all step time at every particle count teste
 ) <tab:crossover>
 
 #figure(
-  image("../graphics/fig_crossover.png", width: 80%),
+  image("../assets/fig_crossover.png", width: 80%),
   caption: [Direct vs tree force evaluation. Left axis: runtime (ms/step). Right axis: final energy drift.],
 ) <fig:crossover>
 
@@ -147,7 +147,7 @@ WebGPU carries about 2$times$ overhead at the smallest particle count, where per
 ) <tab:cross-backend>
 
 #figure(
-  image("../graphics/fig_cross_backend.png", width: 80%),
+  image("../assets/fig_cross_backend.png", width: 80%),
   caption: [Grouped bar chart of per-step runtime across four WebGPU backends.],
 ) <fig:cross-backend>
 
@@ -172,7 +172,7 @@ The variation across implementations is substantial: at $N = 100000$ the fastest
 ) <tab:web-native>
 
 #figure(
-  image("../graphics/fig_web_native.png", width: 80%),
+  image("../assets/fig_web_native.png", width: 80%),
   caption: [Native vs browser execution time per step.],
 ) <fig:web-native>
 

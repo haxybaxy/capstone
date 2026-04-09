@@ -66,7 +66,7 @@ capstone/
 ├── main.typ              # Main Typst document
 ├── main.pdf              # Compiled thesis PDF
 ├── references.bib        # Bibliography
-├── graphics/             # Figures and logos
+├── assets/               # Figures and logos
 ├── sections/             # Thesis sections (Typst)
 │   ├── title_page.typ
 │   ├── abstract.typ

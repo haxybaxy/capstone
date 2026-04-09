@@ -104,7 +104,7 @@ An internal node is accepted as a monopole when it is sufficiently small relativ
 @fig:opening-criterion illustrates the geometry of both criteria. The default opening angle $theta = 0.75$ is used as a practical balance between accuracy and performance. For comparison, GADGET-2 uses $theta$ values in the range 0.5 to 0.7 for cosmological simulations where higher force accuracy is required @springel_2005, while the original Barnes and Hut paper used $theta = 1.0$ @barneshut. The parameter sweeps in the evaluation protocol (see @sec:evaluation-protocol) systematically characterize the accuracy–performance trade-off across $theta in {0.3, 0.5, 0.7, 1.0}$.
 
 #figure(
-  image("../graphics/fig_opening_criterion.png", width: 100%),
+  image("../assets/fig_opening_criterion.png", width: 100%),
   caption: [Geometry of the opening criterion.],
 ) <fig:opening-criterion>
 
@@ -139,7 +139,7 @@ The Linear Bounding Volume Hierarchy is built fully on the GPU each timestep, fo
 + *Morton code generation.* Each particle's position is normalised to a $[0, 1023]^3$ integer grid within the global bounding box, and the three 10-bit integer coordinates are interleaved to produce a single 30-bit Morton code @morton1966. The Morton code maps a three-dimensional position to a one-dimensional index along a Z-order (Morton) space-filling curve, so that particles that are spatially close in 3D tend to receive numerically similar codes. @fig:morton-binning illustrates this principle in two dimensions: the Z-curve (red dashed line) visits grid cells in an order that preserves spatial locality, so that after sorting by Morton code, particles in the same cell are stored contiguously in the sorted array. The same principle extends to three dimensions with octant interleaving.
 
 #figure(
-  image("../graphics/mortoncode.png", width: 70%),
+  image("../assets/mortoncode.png", width: 70%),
   caption: [Spatial binning via a Z-order (Morton) space-filling curve in 2D. The dotted red line traces the curve through the grid. Spatially adjacent particles are stored contiguously in the sorted array. Adapted from Peláez @pelaez_thesis.],
 ) <fig:morton-binning>
 
@@ -190,7 +190,7 @@ We also tried two approaches that did not work. Near-far child ordering (pushing
 In interactive mode, particles are rendered as instanced billboard quads with additive blending. The vertex shader reads positions directly from the physics storage buffers, avoiding per-frame data uploads. A toggleable trail effect improves visibility in sparse scenarios (e.g. the two-body orbit): a screen-space accumulation buffer reprojects the previous frame's trails into the current camera view, fades them by a configurable amount, and composites new particle positions on top with additive blending, using a ping-pong texture pair. An ImGui overlay (@fig:simscreen) provides interactive control of parameters and displays diagnostics. In headless mode, rendering is skipped entirely.
 
 #figure(
-  image("../graphics/simscreen.png", width: 85%),
+  image("../assets/simscreen.png", width: 85%),
   caption: [Interactive mode showing the ImGui control overlay.],
 ) <fig:simscreen>
 
@@ -255,11 +255,11 @@ Because the initial conditions are stochastic, we assess robustness by repeating
     grid(
       columns: (1fr, 1fr),
       gutter: 12pt,
-      figure(image("../graphics/fig_scenario_a.png", width: 100%), caption: [_(a) Two-body orbit with particle trails_], numbering: none),
-      figure(image("../graphics/fig_scenario_b.png", width: 100%), caption: [_(b) Plummer sphere_], numbering: none),
+      figure(image("../assets/fig_scenario_a.png", width: 100%), caption: [_(a) Two-body orbit with particle trails_], numbering: none),
+      figure(image("../assets/fig_scenario_b.png", width: 100%), caption: [_(b) Plummer sphere_], numbering: none),
     ),
     align(center,
-      figure(image("../graphics/fig_scenario_c.png", width: 50%), caption: [_(c) Exponential disk_], numbering: none),
+      figure(image("../assets/fig_scenario_c.png", width: 50%), caption: [_(c) Exponential disk_], numbering: none),
     ),
   ),
   caption: [Initial particle distributions for the three benchmark scenarios with plummer at $N = 10000$ and exponential disk with $N = 50000$.],

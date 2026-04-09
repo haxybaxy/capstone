@@ -10,7 +10,7 @@
 #text(size: 14pt, style: "italic")[School of Science & Technology]
 #v(1.5cm)
 
-#image("../graphics/SST.png", width: 40%)
+#image("../assets/SST.png", width: 40%)
 #v(1.5cm)
 
 #text(size: 24pt, weight: "bold")[Hierarchical N-Body Simulation of Galactic Dynamics in WebGPU]
