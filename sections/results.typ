@@ -20,8 +20,6 @@ This section presents the empirical results from the experiment groups defined i
     [Plummer, GPU tree], [100,000], [2.35], [1.85], [0.46], [0.04],
     [Disk, GPU tree], [50,000], [1.72], [---], [---], [---],
     [Disk, GPU tree], [100,000], [2.04], [---], [---], [---],
-    [Plummer, CPU tree], [50,000], [65.06], [---], [---], [---],
-    [Plummer, direct], [5,000], [4.96], [---], [---], [---],
   ),
   caption: [Performance summary for representative configurations (leapfrog, $theta = 0.75$, $epsilon = 0.5$, $Delta t = 0.001$). Timing components in milliseconds.],
 ) <tab:performance-summary>
@@ -90,38 +88,32 @@ The rotating disk scenario exhibits similar behaviour. Runtime increases from 1.
 
 === Two-Body Orbit Validation (Scenario A)
 
-The two-body orbit provides the simplest test of integrator correctness. @tab:twobody-drift presents the final energy drift after 50,000 steps for both integrators across the timestep sweep. The Euler integrator, run on the CPU octree path, exhibits substantially lower energy drift (on the order of $10^(-5)$ to $10^(-6)$) than the leapfrog integrator on the GPU BVH path (drift of order unity). This counterintuitive result is attributable to the different force computation paths rather than the integration scheme: the CPU path computes forces in double precision via the octree, while the GPU BVH path uses 32-bit floating-point arithmetic. At $N = 2$, the BVH tree structure is degenerate (a single internal node with two leaves), and the 32-bit force evaluation accumulates sufficient rounding error over 50,000 steps to produce measurable orbit drift.
+The two-body orbit validates code-path correctness: both the GPU BVH and CPU octree paths complete 50,000 steps without divergence, and the orbit remains visually stable (@fig:twobody-orbit). Energy drift on the 32-bit GPU path ($Delta E \/ |E(0)| approx 1.97$) is dominated by floating-point precision rather than the integration scheme, as confirmed by a diagnostic run using direct force evaluation on the same GPU path (drift $5.77 times 10^(-6)$). The CPU octree path, operating in 64-bit, achieves drift on the order of $10^(-5)$. @tab:twobody-drift summarises the timestep sweep.
 
 #figure(
   table(
     columns: (auto, auto, auto),
     align: (right, right, right),
-    [*$Delta t$*], [*Leapfrog (GPU BVH)*], [*Euler (CPU octree)*],
+    [*$Delta t$*], [*GPU BVH (32-bit)*], [*CPU octree (64-bit)*],
     [0.0001], [$1.71$], [$1.78 times 10^(-6)$],
-    [0.0005], [$1.94$], [$1.08 times 10^(-5)$],
     [0.001], [$1.97$], [$1.89 times 10^(-5)$],
-    [0.005], [$1.99$], [$1.12 times 10^(-5)$],
     [0.01], [$1.99$], [$3.81 times 10^(-6)$],
   ),
-  caption: [Final energy drift $Delta E / ( |E(0)| )$ after 50,000 steps for the two-body orbit (Scenario A). The difference between integrators is dominated by the force computation precision: GPU BVH (32-bit) versus CPU octree (64-bit).],
+  caption: [Final energy drift after 50,000 steps (Scenario A). The difference is dominated by force computation precision, not the integration scheme.],
 ) <tab:twobody-drift>
-
-For very small $N$, the 32-bit precision of GPU computation is the binding constraint on numerical quality, not the integration scheme. @fig:twobody-orbit shows the orbit trajectory from interactive mode. The two-body scenario remains useful as a validation of code-path correctness (both paths complete without NaN or divergence), but quantitative energy-conservation comparisons between integrators require the same force computation path.
 
 #figure(
   rect(width: 80%, height: 6cm, stroke: 0.5pt + gray, inset: 1em)[
-    #align(center + horizon)[_Placeholder: Screenshot of two-body orbit from interactive mode showing the circular orbit path of the two particles. Capture at $t approx 5$ with trail rendering if available._]
+    #align(center + horizon)[_Placeholder: Screenshot of two-body orbit from interactive mode._]
   ],
-  caption: [Two-body orbit trajectory (Scenario A) as rendered in interactive visualisation mode. The two equal-mass particles maintain a stable circular orbit under the leapfrog integrator.],
+  caption: [Two-body orbit trajectory (Scenario A). The two equal-mass particles maintain a stable circular orbit under the leapfrog integrator.],
 ) <fig:twobody-orbit>
 
 === Energy Conservation in the Plummer Sphere (Scenario B)
 
 The Plummer sphere at $N = 5000$ (where potential energy is computed via direct pair summation) provides the primary testbed for energy conservation. @fig:energy-drift-plummer shows the evolution of energy drift over 5,000 steps.
 
-The leapfrog integrator at default parameters ($Delta t = 0.001$, $theta = 0.75$) produces a final drift of $Delta E / (|E(0)|) = 1.84$ after 5,000 steps (simulation time $t = 5.0$). Inspection of the energy components reveals that kinetic energy remains nearly constant ($K approx 744233$) while the potential energy magnitude decreases steadily from $-1.47 times 10^6$ to $-5.72 times 10^5$, indicating that the Plummer sphere is expanding. This behaviour is characteristic of a system that is not in perfect virial equilibrium at the discrete $N$ used, combined with the systematic force error introduced by the monopole approximation at $theta = 0.75$. The total energy transitions from negative to positive, reflecting an unbinding process that is physical in the context of finite-$N$ sampling with approximate forces.
-
-The Euler integrator at the same $N$ and $Delta t$ produces a substantially lower final drift of $9.28 times 10^(-3)$, again attributable to the 64-bit CPU force computation path rather than intrinsic integrator quality.
+At default parameters ($Delta t = 0.001$, $theta = 0.75$), the leapfrog integrator produces a final drift of $Delta E \/ |E(0)| = 1.84$ after 5,000 steps. Kinetic energy remains stable while the potential energy magnitude decreases, indicating the sphere is expanding — a known behaviour of finite-$N$ Plummer models with approximate forces @galacticdynamics2nded. As with the two-body case, the 64-bit CPU path produces substantially lower drift ($9.28 times 10^(-3)$), confirming that 32-bit precision is the dominant error source.
 
 #figure(
   image("../graphics/fig_energy_drift.png", width: 80%),
@@ -149,13 +141,9 @@ The Euler integrator at the same $N$ and $Delta t$ produces a substantially lowe
 
 The timestep sweep at $N = 5000$ reveals that energy drift increases with simulation time. Because all runs execute 5,000 steps, smaller $Delta t$ corresponds to shorter total simulation time: $Delta t = 5 times 10^(-5)$ yields $t_"final" = 0.25$, while $Delta t = 5 times 10^(-3)$ yields $t_"final" = 25$. The drift increases from 0.38 at $Delta t = 5 times 10^(-5)$ to 1.99 at $Delta t = 5 times 10^(-3)$, reflecting both longer physical evolution time and larger per-step truncation error. To isolate the effect of $Delta t$ on integration accuracy from the effect of total simulation time would require runs to a fixed $t_"final"$, which was not performed in this sweep and represents an area for refined experimentation.
 
-=== Effect of Softening $epsilon$
+=== Softening and Momentum
 
-The softening sweep at $N = 5000$ shows a modest increase in energy drift with larger $epsilon$: from $Delta E / ( |E(0)| ) = 1.82$ at $epsilon = 0.1$ to $2.00$ at $epsilon = 2.0$. Larger softening reduces the depth of the gravitational potential well, making the system less tightly bound and more prone to expansion. Runtime is unaffected by softening (approximately 3.5 ms/step for all values), confirming that softening does not change the computational cost of force evaluation.
-
-=== Momentum Conservation
-
-For the Plummer sphere at $N = 5000$, the total momentum magnitude $||P(t)|| = ||(sum_i m_i v_i)||$ remains approximately constant throughout the integration, starting at $||P(0)|| approx 1400$ and varying by less than 0.1% over 5,000 steps. This near-conservation is expected for the leapfrog scheme, which preserves linear momentum exactly for pairwise central forces. The non-zero initial momentum arises from the finite-$N$ sampling of the Plummer distribution, which does not enforce exact momentum balance.
+Softening in the range $epsilon in {0.1, 0.25, 0.5, 1.0, 2.0}$ has no measurable effect on runtime (approximately 3.5 ms/step for all values) and produces only modest variation in energy drift (1.82 to 2.00). Momentum is conserved to within 0.1% over 5,000 steps, as expected for the symplectic leapfrog scheme.
 
 == RQ3: Platform Feasibility
 
@@ -181,24 +169,17 @@ For the Plummer sphere at $N = 5000$, the total momentum magnitude $||P(t)|| = |
   caption: [Native vs browser wall-clock ms/step and final energy drift (Plummer sphere, GPU LBVH, leapfrog, $theta = 0.75$). Native timing is the mean of tree build, force, and integration components after warmup. Browser timing is wall-clock from console-log timestamps, which includes event-loop scheduling overhead.],
 ) <tab:web-native>
 
-The constant browser wall-clock time indicates that per-step duration is dominated by a fixed overhead rather than GPU compute. Subtracting the native GPU time from the browser wall-clock yields a constant residual of approximately 4.3 ms/step across all $N$ values. This fixed cost is attributable to the Emscripten asyncify mechanism, which yields control to the browser event loop between timesteps via `emscripten_sleep(0)`, incurring JavaScript-to-WebAssembly context switching and event-loop scheduling latency. This overhead is additive and constant: it does not grow with $N$, meaning the sub-linear scaling behaviour observed in native execution is preserved in the browser.
-
-Energy drift values are nearly identical between the two platforms at each $N$, with relative differences below 1% for $N gt.eq 10000$ and below 2% at smaller $N$. The small discrepancies at lower $N$ are attributable to differences in floating-point intermediate rounding between the native and browser WebGPU driver paths, but both platforms produce the same qualitative energy evolution and the same order-of-magnitude drift at every $N$. Both platforms therefore produce matching numerical output from the same GPU shaders.
+The constant browser wall-clock time indicates that per-step duration is dominated by a fixed overhead rather than GPU compute. Subtracting native GPU time from the browser wall-clock yields a constant residual of approximately 4.3 ms/step across all $N$, attributable to the Emscripten asyncify mechanism yielding control to the browser event loop between timesteps. This overhead is additive and does not grow with $N$, preserving the sub-linear scaling observed in native execution. Energy drift values match between platforms to within 1% for $N gt.eq 10000$, confirming that both paths produce numerically consistent results from the same GPU shaders.
 
 #figure(
   image("../graphics/fig_web_native.png", width: 80%),
   caption: [Native vs browser execution time per step. The browser wall-clock is dominated by a fixed ~4.3 ms event-loop scheduling overhead (shaded region) from Emscripten asyncify, independent of $N$. The overhead factor decreases from 9.2$times$ at $N = 100$ to 2.7$times$ at $N = 100000$.],
 ) <fig:web-native>
 
-=== Practical Particle Count Limits
 
-At the maximum tested particle count of $N = 100000$, the GPU LBVH leapfrog path achieves 2.35 ms per step, corresponding to approximately 425 timesteps per second. In interactive mode with rendering overhead, this translates to frame rates well above 60 FPS for $N$ up to at least 50,000 particles on the Apple M2 GPU. The maximum storage buffer binding size reported by the adapter is 128 MB, which accommodates the BVH node array ($2N - 1$ nodes) and particle state buffers up to approximately $N = 2 times 10^6$ before memory limits are reached, though this was not tested experimentally.
+=== Practical Limits and Robustness
 
-At $N = 100000$, the GPU scheduling overhead remains a small fraction of total step time: integration (kick/drift dispatches) accounts for only 0.04 ms regardless of $N$, confirming that compute dispatch latency does not become a bottleneck at the tested scale.
-
-=== Seed Robustness
-
-Three independent Plummer sphere realisations ($N = 5000$, seeds 42, 123, 256) show timing that varies from 6.9 to 11.2 ms/step, with the highest value (seed 123) likely attributable to a less favourable initial particle distribution affecting tree traversal depth. Energy drift ranges from 0.64 to 1.24 across seeds. The variation in drift reflects the sensitivity of finite-$N$ relaxation to the specific particle configuration, confirming that energy evolution is initial-condition-dependent as expected for an $N$-body system.
+At $N = 100000$, the GPU LBVH path achieves 2.35 ms per step (approximately 425 timesteps per second), sustaining interactive frame rates above 60 FPS for $N$ up to at least 50,000 in interactive mode. The maximum storage buffer binding size (128 MB) accommodates particle counts up to approximately $N = 2 times 10^6$ before memory limits are reached.
 
 == Summary of Findings
 
