@@ -50,11 +50,12 @@ Below are representative invocations for each experiment group. In all cases, th
 === Group 1: Two-Body Validation
 
 ```
-./galaxysim --scenario twobody --dt 0.001 --theta 0.75 \
-  --softening 0.5 --seed 42 --steps 50000 --headless \
-  --sync-timing --export results/A_leapfrog_dt001.csv
+./build/src/galaxysim --headless --scenario twobody --N 2 \
+  --steps 5000 --dt 0.001 --softening 0.5 --theta 0.75 \
+  --seed 42 --force-method tree --sync-timing \
+  --export results/benchmarks/dt_0.001_N2.csv
 ```
-Swept: `--dt` over {0.0001, 0.0005, 0.001, 0.005, 0.01}. Particle count is fixed at $N = 2$ by the scenario.
+Swept: `--dt` over {0.0001, 0.0005, 0.001, 0.005}. Particle count is fixed at $N = 2$ by the scenario.
 
 === Group 2a: N-Scaling (Plummer)
 
@@ -68,22 +69,24 @@ Swept: `--N` over {1000, 5000, 10000, 50000, 100000}.
 === Groups 2b/2c/2e: Parameter Sweeps (Plummer, $N = 5000$)
 
 ```
-./galaxysim --scenario plummer --N 5000 --dt 0.001 --theta 0.3 \
-  --softening 0.5 --seed 42 --steps 5000 --headless \
-  --sync-timing --export results/B_theta03.csv
+./build/src/galaxysim --headless --scenario plummer --N 5000 \
+  --steps 5000 --dt 0.001 --theta 0.3 --softening 0.5 \
+  --seed 42 --force-method tree --sync-timing \
+  --export results/B_theta03.csv
 ```
 2b swept: `--theta` over {0.3, 0.5, 0.7, 1.0}. \
-2c swept: `--dt` over {0.00005, 0.0001, 0.0005, 0.001, 0.005}. \
+2c swept: `--dt` over {0.0001, 0.0005, 0.001, 0.005}. \
 2e swept: `--softening` over {0.1, 0.25, 0.5, 1.0, 2.0}.
 
 === Group 3a: Disk N-Scaling
 
 ```
-./galaxysim --scenario disk --N 10000 --dt 0.001 --theta 0.75 \
-  --softening 0.5 --seed 42 --steps 150 --headless \
-  --sync-timing --export results/C_scale_N10000.csv
+./build/src/galaxysim --headless --scenario disk \
+  --N 10000 --steps 150 --dt 0.001 --softening 0.5 \
+  --theta 0.75 --seed 42 --force-method tree \
+  --sync-timing --export results/benchmarks/disk_sync_N10000.csv
 ```
-Swept: `--N` over {10000, 25000, 50000, 75000, 100000}.
+Swept: `--N` over {1000, 5000, 10000, 50000, 100000}.
 
 === Group 4: Direct vs Tree Crossover
 
@@ -126,12 +129,12 @@ Swept: `--N` over {1000, 5000, 10000, 50000, 100000}. The `--benchmark-passes` f
     columns: (auto, auto, auto, auto, auto, auto, auto, auto),
     align: (left, left, right, right, right, right, left, right),
     [*Group*], [*Scenario*], [*$N$*], [*$Delta t$*], [*$theta$*], [*$epsilon$*], [*Force*], [*Steps*],
-    [1], [twobody], [2], [0.0001–0.01], [0.75], [0.5], [tree], [50,000],
+    [1], [twobody], [2], [0.0001–0.005], [0.75], [0.5], [tree], [5,000],
     [2a], [plummer], [1K–100K], [0.001], [0.75], [0.5], [tree], [150],
     [2b], [plummer], [5,000], [0.001], [0.3–1.0], [0.5], [tree], [5,000],
-    [2c], [plummer], [5,000], [5e-5–5e-3], [0.75], [0.5], [tree], [5,000],
+    [2c], [plummer], [5,000], [1e-4–5e-3], [0.75], [0.5], [tree], [5,000],
     [2e], [plummer], [5,000], [0.001], [0.75], [0.1–2.0], [tree], [5,000],
-    [3a], [disk], [10K–100K], [0.001], [0.75], [0.5], [tree], [150],
+    [3a], [disk], [1K–100K], [0.001], [0.75], [0.5], [tree], [150],
     [4], [plummer], [1K–100K], [0.001], [0.75], [0.5], [both], [150],
     [5], [plummer], [1K–100K], [0.001], [0.75], [0.5], [tree], [150],
     [6], [plummer], [1K–100K], [0.001], [0.75], [0.5], [tree], [150],

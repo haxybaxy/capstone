@@ -42,12 +42,12 @@ The experiments are split into seven groups, targeting one or more research ques
     columns: (auto, auto, auto, auto, auto),
     align: (left, left, left, left, left),
     [*Group*], [*Scenario*], [*Variable*], [*Runs*], [*RQ*],
-    [1: Two-body validation], [A (two-body)], [$Delta t$], [5], [Qual.],
+    [1: Two-body validation], [A (two-body)], [$Delta t$], [4], [Qual.],
     [2a: N-scaling], [B (Plummer)], [$N in {100 "–" 10^5}$], [9], [RQ1, RQ3],
     [2b: Theta sweep], [B (Plummer)], [$theta in {0.3, 0.5, 0.7, 1.0}$], [4], [Qual.],
-    [2c: Timestep sweep], [B (Plummer)], [$Delta t in {5 times 10^(-5) "–" 5 times 10^(-3)}$], [5], [Qual.],
+    [2c: Timestep sweep], [B (Plummer)], [$Delta t in {10^(-4) "–" 5 times 10^(-3)}$], [4], [Qual.],
     [2e: Softening sweep], [B (Plummer)], [$epsilon in {0.1 "–" 2.0}$], [5], [Qual.],
-    [3a: Disk N-scaling], [C (disk)], [$N in {10^4 "–" 10^5}$], [5], [RQ1, RQ3],
+    [3a: Disk N-scaling], [C (disk)], [$N in {10^3 "–" 10^5}$], [5], [RQ1, RQ3],
     [4: Direct vs tree crossover], [B (Plummer)], [force method $times N$], [12], [RQ1],
     [5: Native vs browser], [B (Plummer)], [execution platform $times N$], [9], [RQ3],
     [6: Cross-backend comparison], [B (Plummer)], [WebGPU impl $times N$], [12], [RQ2, RQ3],
@@ -58,7 +58,7 @@ The experiments are split into seven groups, targeting one or more research ques
 
 === Group 1: Two-Body Orbit Validation (Scenario A)
 
-This group verifies integrator correctness using the two-body orbit configuration ($N = 2$, $m = 1000$ each). The timestep $Delta t$ is swept over ${0.0001, 0.0005, 0.001, 0.005, 0.01}$ using the leapfrog integrator, yielding five runs of 50,000 steps each. All runs use the GPU BVH tree path with $theta = 0.75$, $epsilon = 0.5$, and seed 42. The primary diagnostic is the energy drift over the full integration, with secondary attention to momentum magnitude and orbit stability.
+This group verifies integrator correctness using the two-body orbit configuration ($N = 2$, $m = 1000$ each). The timestep $Delta t$ is swept over ${0.0001, 0.0005, 0.001, 0.005}$ using the leapfrog integrator, yielding four runs of 5,000 steps each. All runs use the GPU BVH tree path with $theta = 0.75$, $epsilon = 0.5$, and seed 42. The primary diagnostic is the energy drift over the full integration, with secondary attention to momentum magnitude and orbit stability.
 
 === Group 2: Plummer Sphere Parameter Sweeps (Scenario B)
 
@@ -66,11 +66,11 @@ The Plummer sphere is the primary quantitative testbed because of its symmetric 
 
 Sub-group 2a (N-scaling) varies $N$ over ${100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000}$ with all other parameters fixed at defaults ($Delta t = 0.001$, $theta = 0.75$, $epsilon = 0.5$, leapfrog, GPU LBVH). Each run executes 1,000 steps. This sub-group directly addresses RQ1 (scalability) and RQ3 (feasibility at large $N$).
 
-Sub-groups 2b, 2c, and 2e isolate the effects of individual parameters at fixed $N = 5000$ (chosen because potential energy is computed at this size, enabling full energy tracking). Sub-group 2b sweeps $theta in {0.3, 0.5, 0.7, 1.0}$; sub-group 2c sweeps $Delta t in {5 times 10^(-5), 10^(-4), 5 times 10^(-4), 10^(-3), 5 times 10^(-3)}$; and sub-group 2e sweeps $epsilon in {0.1, 0.25, 0.5, 1.0, 2.0}$. All parameter-sweep runs execute 5,000 steps.
+Sub-groups 2b, 2c, and 2e isolate the effects of individual parameters at fixed $N = 5000$ (chosen because potential energy is computed at this size, enabling full energy tracking). Sub-group 2b sweeps $theta in {0.3, 0.5, 0.7, 1.0}$; sub-group 2c sweeps $Delta t in {10^(-4), 5 times 10^(-4), 10^(-3), 5 times 10^(-3)}$; and sub-group 2e sweeps $epsilon in {0.1, 0.25, 0.5, 1.0, 2.0}$. All parameter-sweep runs execute 5,000 steps.
 
 === Group 3: Rotating Disk Scaling (Scenario C)
 
-The disk scenario targets large-$N$ scalability and qualitative morphological assessment. Sub-group 3a scales $N$ over ${10000, 25000, 50000, 75000, 100000}$ with default parameters and 1,000 steps each, measuring runtime scaling and timing decomposition. Morphological evolution (spiral arm formation, bar instability) is assessed through interactive-mode visualisation at selected timesteps (@fig:disk-evolution).
+The disk scenario targets large-$N$ scalability and qualitative morphological assessment. Sub-group 3a scales $N$ over ${1000, 5000, 10000, 50000, 100000}$ with default parameters and 150 steps each, measuring runtime scaling and timing decomposition. Morphological evolution (spiral arm formation, bar instability) is assessed through interactive-mode visualisation at selected timesteps (@fig:disk-evolution).
 
 #figure(
   grid(
