@@ -196,7 +196,7 @@ In interactive mode, particles are rendered as instanced billboard quads with ad
 
 == Initial Conditions and Benchmark Scenarios <sec:initial-conditions>
 
-All experiments start from synthetic initial conditions and produce derived outputs (trajectories, diagnostic scalars, timing logs), enabling  controlled and repeatable comparisons across parameter sweeps. Each experiment is fully specified by its simulation parameters: scenario type, seed, $N$, $Delta t$, $theta$, softening $epsilon$, and step count. Three benchmark scenarios are defined, with initial particle distributions shown in @fig:scenarios and complete parameter specifications for all experiment groups listed in @tab:all-experiments.
+All experiments start from synthetic initial conditions and produce derived outputs (trajectories, diagnostic scalars, timing logs), enabling  controlled and repeatable comparisons across parameter sweeps. Each experiment is fully specified by its simulation parameters: scenario type, seed, $N$, $Delta t$, $theta$, softening $epsilon$, and step count. Three benchmark scenarios are defined, with initial particle distributions shown in @fig:scenarios.
 
 === Scenario A: two-body circular orbit
 
@@ -212,7 +212,7 @@ This is the simplest validation of integrator correctness. With the right timest
 
 A Plummer sphere is a spherically symmetric, self-gravitating stellar system with a density that falls off smoothly with distance from the centre. It was first introduced by Plummer @plummer1911 as an empirical fit to the light profiles of globular clusters, and its density profile is given by $rho(r) prop (1 + r^2 \/ a^2)^(-5\/2)$, where $a$ is a scale length that sets the size of the core. Because the Plummer model has known analytic properties, such as closed-form expressions for the potential, escape velocity, and distribution function, it is used as a standard test case for $N$-body codes @galacticdynamics2nded @aarseth1974. Deviations from the expected equilibrium behaviour give us a diagnostic of force accuracy and integration stability.
 
-Scenario B generates a Plummer sphere with $N in [10^3, 10^5]$ (depending on hardware) and scale length $a = 5$. Particle radii are sampled via the inverse cumulative distribution function
+Scenario B generates a Plummer sphere with scale length $a = 5$. Particle radii are sampled via the inverse cumulative distribution function
 #math.equation(
   $
     r = frac(a, sqrt(u^(-2\/3) - 1))
@@ -230,11 +230,11 @@ against the local escape velocity
     v_e = sqrt(frac(2 G M, sqrt(r^2 + a^2)))
   $,
 )
-with isotropic velocity directions. This scenario tests tree accuracy and long-term stability in a compact three-dimensional distribution. The Plummer softening parameter $epsilon$ in the force model is conceptually related to the Plummer scale length $a$ in the initial conditions, though the two are independently configurable. The key sweep variables are $theta$, $epsilon$, and $Delta t$; the primary limitation is that the spherical geometry does not emphasize disk morphology such as spirals and bars.
+with isotropic velocity directions. This scenario tests tree accuracy and long-term stability in a compact three-dimensional distribution. The Plummer softening parameter $epsilon$ in the force model is conceptually related to the Plummer scale length $a$ in the initial conditions, though the two are independently configurable. The primary limitation is that the spherical geometry does not emphasize disk morphology such as spirals and bars.
 
 === Scenario C: rotating exponential disk (galaxy-like morphology test)
 
-Scenario C generates a rotating disk with $N in [10^4, 10^5]$ to evaluate long-term evolution and visually interpretable galactic dynamics. The surface density profile follows an exponential distribution @freeman1970, with particle radii drawn from an exponential distribution (rate parameter 0.08) and clamped to a maximum of 50 units, and azimuthal angles drawn uniformly. Vertical height is drawn from a normal distribution $cal(N)(0, 0.3)$ scaled by $1 / (1 + 0.5 r)$ to produce a thinner disk at larger radii. Particle masses are drawn uniformly from $[0.5, 2.0]$.
+Scenario C generates a rotating disk to evaluate long-term evolution and visually interpretable galactic dynamics. The surface density profile follows an exponential distribution @freeman1970, with particle radii drawn from an exponential distribution (rate parameter 0.08) and clamped to a maximum of 50 units, and azimuthal angles drawn uniformly. Vertical height is drawn from a normal distribution $cal(N)(0, 0.3)$ scaled by $1 / (1 + 0.5 r)$ to produce a thinner disk at larger radii. Particle masses are drawn uniformly from $[0.5, 2.0]$.
 
 Circular velocities are assigned using an approximate enclosed-mass estimate. For particles with $r > 0.1$, the tangential velocity is
 #math.equation(
@@ -242,7 +242,7 @@ Circular velocities are assigned using an approximate enclosed-mass estimate. Fo
     v = 0.5 sqrt(frac(M_"enclosed", r))
   $,
 )
-with the velocity directed tangentially. This simplified dynamical setup is not a full multi-component Milky Way model: the enclosed-mass estimate is approximate, and no bulge or halo component is included. The disk geometry provides a morphologically rich test case where the formation of spiral structure, bars, and other large-scale features validate the solver's long term behavior qualitatively. The key sweep variables are disk scale length, thickness, velocity dispersion, $theta$, and $Delta t$.
+with the velocity directed tangentially. This simplified dynamical setup is not a full multi-component Milky Way model: the enclosed-mass estimate is approximate, and no bulge or halo component is included. The disk geometry provides a morphologically rich test case where the formation of spiral structure, bars, and other large-scale features validate the solver's long term behavior qualitatively.
 
 === Sampling and robustness across seeds
 

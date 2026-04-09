@@ -35,7 +35,7 @@ We follow established practices for GPU benchmarking @maczan2026. Each configura
 
 == Experiment Groups
 
-The experiments are split into seven groups, targeting one or more research questions or numerical quality (@tab:experiment-matrix). Exact command-line invocations for reproducing each group are provided in the Appendix.
+The experiments are split into seven groups, targeting one or more research questions or numerical quality (@tab:experiment-matrix). Complete parameter specifications (@tab:all-experiments) and command-line invocations for reproducing each group are provided in the Appendix.
 
 #figure(
   table(
@@ -70,16 +70,16 @@ Sub-groups 2b, 2c, and 2e isolate the effects of individual parameters at fixed 
 
 === Group 3: Rotating Disk Scaling (Scenario C)
 
-The disk scenario targets large-$N$ scalability and qualitative morphological assessment. Sub-group 3a scales $N$ over ${10000, 25000, 50000, 75000, 100000}$ with default parameters and 1,000 steps each, measuring runtime scaling and timing decomposition. Morphological evolution (spiral arm formation, bar instability) is assessed through interactive-mode visualisation at selected timesteps (@fig:disk-evolution) and reported descriptively.
+The disk scenario targets large-$N$ scalability and qualitative morphological assessment. Sub-group 3a scales $N$ over ${10000, 25000, 50000, 75000, 100000}$ with default parameters and 1,000 steps each, measuring runtime scaling and timing decomposition. Morphological evolution (spiral arm formation, bar instability) is assessed through interactive-mode visualisation at selected timesteps (@fig:disk-evolution).
 
 #figure(
   grid(
     columns: 2,
     gutter: 12pt,
-    figure(image("../graphics/fig_disk_t0.png", width: 100%), caption: [_(a)_ $t = 0$], numbering: none),
-    figure(image("../graphics/fig_disk_t1.png", width: 100%), caption: [_(b)_ $t = 1$], numbering: none),
-    figure(image("../graphics/fig_disk_t5.png", width: 100%), caption: [_(c)_ $t = 5$], numbering: none),
-    figure(image("../graphics/fig_disk_t10.png", width: 100%), caption: [_(d)_ $t = 10$], numbering: none),
+    figure(image("../assets/disk_step1.png", width: 100%), caption: [Timestep 1], numbering: none),
+    figure(image("../assets/disk_step5.png", width: 100%), caption: [Timestep 5], numbering: none),
+    figure(image("../assets/disk_step20.png", width: 100%), caption: [Timestep  Step 20], numbering: none),
+    figure(image("../assets/disk_step50.png", width: 100%), caption: [Timestep  Step 50], numbering: none),
   ),
   caption: [Morphological evolution of the rotating exponential disk.],
 ) <fig:disk-evolution>
