@@ -178,20 +178,7 @@ The variation across implementations is substantial: at $N = 100000$ the fastest
 
 == Numerical Quality
 
-Energy drift is reported as a secondary observation characterising the precision and approximation quality of the solver. The opening-angle sweep at $N = 5000$ (@tab:theta-sweep) shows that drift spans about two orders of magnitude across the tested $theta$ range. Larger opening angles admit more distant nodes into the force approximation, introducing greater truncation error. Runtime drops modestly as $theta$ increases, reflecting fewer node interactions per particle. Momentum is conserved to within 0.1% over 5,000 steps at all tested $theta$ values.
-
-#figure(
-  table(
-    columns: (auto, auto, auto),
-    align: (right, right, right),
-    [*$theta$*], [*Mean ms/step*], [*Final drift*],
-    [0.3], [9.30], [$2.67 times 10^(-4)$],
-    [0.5], [8.24], [$2.75 times 10^(-3)$],
-    [0.7], [7.57], [$9.77 times 10^(-3)$],
-    [1.0], [6.96], [$3.31 times 10^(-2)$],
-  ),
-  caption: [Effect of opening angle $theta$ on runtime and energy drift.],
-) <tab:theta-sweep>
+Energy drift is reported as a secondary observation characterising the precision and approximation quality of the solver.
 
 === Two-Body Orbit Validation
 
@@ -209,6 +196,23 @@ The two-body circular orbit (@tab:twobody-validation) confirms integrator correc
   ),
   caption: [Two-body orbit: energy drift and momentum conservation across $Delta t$.],
 ) <tab:twobody-validation>
+
+=== Opening Angle Sensitivity
+
+The opening-angle sweep at $N = 5000$ (@tab:theta-sweep) shows that drift spans about two orders of magnitude across the tested $theta$ range. Larger opening angles admit more distant nodes into the force approximation, introducing greater truncation error. Runtime drops modestly as $theta$ increases, reflecting fewer node interactions per particle. Momentum is conserved to within 0.1% over 5,000 steps at all tested $theta$ values.
+
+#figure(
+  table(
+    columns: (auto, auto, auto),
+    align: (right, right, right),
+    [*$theta$*], [*Mean ms/step*], [*Final drift*],
+    [0.3], [9.30], [$2.67 times 10^(-4)$],
+    [0.5], [8.24], [$2.75 times 10^(-3)$],
+    [0.7], [7.57], [$9.77 times 10^(-3)$],
+    [1.0], [6.96], [$3.31 times 10^(-2)$],
+  ),
+  caption: [Effect of opening angle $theta$ on runtime and energy drift.],
+) <tab:theta-sweep>
 
 === Timestep Sensitivity
 
