@@ -138,7 +138,7 @@ The variation across implementations is large. Dawn has the lowest per-dispatch 
     [50,000], [65.46], [94.93], [1.5$times$], [$6.07 times 10^(-2)$],
     [100,000], [180.11], [260.74], [1.4$times$], [$7.58 times 10^(-2)$],
   ),
-  caption: [Native (wgpu-native) vs browser (Chrome) wall-clock ms/step and energy drift. Chrome is faster at $N = 1000$ but scales worse; the overhead converges toward 1.4$times$ at large $N$.],
+  caption: [wgpu-native vs Chrome wall-clock ms/step and energy drift. Chrome is faster at $N = 1000$ but scales worse; the overhead converges toward 1.4$times$ at large $N$.],
 ) <tab:web-native>
 
 #figure(
