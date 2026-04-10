@@ -196,7 +196,7 @@ In interactive mode, particles are rendered as instanced billboard quads with ad
 
 == Initial Conditions and Benchmark Scenarios <sec:initial-conditions>
 
-We use no external astronomical datasets. All experiments start from synthetic initial conditions and produce derived outputs (trajectories, diagnostic scalars, timing logs), enabling controlled, repeatable comparisons across parameter sweeps. Each experiment is fully specified by its simulation parameters: scenario type, seed, $N$, $Delta t$, $theta$, softening $epsilon$, and step count. Three benchmark scenarios are defined, with initial particle distributions shown in @fig:scenarios.
+All experiments start from synthetic initial conditions and produce derived outputs (trajectories, diagnostic scalars, timing logs), enabling  controlled and repeatable comparisons across parameter sweeps. Each experiment is fully specified by its simulation parameters: scenario type, seed, $N$, $Delta t$, $theta$, softening $epsilon$, and step count. Three benchmark scenarios are defined, with initial particle distributions shown in @fig:scenarios and complete parameter specifications for all experiment groups listed in @tab:all-experiments.
 
 === Scenario A: two-body circular orbit
 
@@ -206,11 +206,11 @@ Scenario A places two equal-mass particles ($m = 1000$ each, $N = 2$) separated 
     v = sqrt(frac(G m d^2, 2 (d^2 + epsilon^2)^(3/2)))
   $,
 )
-This is the simplest possible validation of integrator correctness. With the right timestep and softening, the two particles should maintain a stable circular orbit indefinitely under leapfrog. We validate quantitatively, not visually: the energy drift $Delta E \/ |E(0)|$ over the full integration is measured directly, and departures from circularity can be isolated without confounding effects from hierarchical force approximation at large $N$.
+This is the simplest possible validation of integrator correctness. With the right timestep and softening, the two particles should maintain a stable circular orbit indefinitely under leapfrog. We validate quantitatively, not visually: the energy drift $Delta E \/ |E(0)|$ over the full integration is measured directly, and any departures from circularity can be isolated without confounding effects from hierarchical force approximation at a large $N$.
 
 === Scenario B: Plummer sphere
 
-A Plummer sphere is a spherically symmetric, self-gravitating stellar system whose density falls off smoothly with distance from the centre. It was first introduced by Plummer @plummer1911 as an empirical fit to the light profiles of globular clusters, and its density profile is given by $rho(r) prop (1 + r^2 \/ a^2)^(-5\/2)$, where $a$ is a scale length that sets the size of the core. Because the Plummer model has known analytic properties — including closed-form expressions for the potential, escape velocity, and distribution function — it is widely used as a standard test case for $N$-body codes @galacticdynamics2nded @aarseth1974. Deviations from the expected equilibrium behaviour provide a direct diagnostic of force accuracy and integration stability.
+A Plummer sphere is a spherically symmetric, self-gravitating stellar system with a density that falls off smoothly with distance from the centre. It was first introduced by Plummer @plummer1911 as an empirical fit to the light profiles of globular clusters, and its density profile is given by $rho(r) prop (1 + r^2 \/ a^2)^(-5\/2)$, where $a$ is a scale length that sets the size of the core. Because the Plummer model has known analytic properties, such as closed-form expressions for the potential, escape velocity, and distribution function, it is widely used as a standard test case for $N$-body codes @galacticdynamics2nded @aarseth1974. Deviations from the expected equilibrium behaviour provide a direct diagnostic of force accuracy and integration stability.
 
 Scenario B generates a Plummer sphere with $N in [10^3, 10^5]$ (depending on hardware) and scale length $a = 5$. Particle radii are sampled via the inverse cumulative distribution function
 #math.equation(
@@ -249,14 +249,20 @@ with the velocity directed tangentially. This simplified dynamical setup is not 
 Because the initial conditions are stochastic, we assess robustness by repeating runs with different random seeds and comparing diagnostics and timing. A run is valid if it completes without NaN or overflow and produces consistent parameter logs. We deliberately retain unstable configurations (such as excessively large $Delta t$) as documented failures rather than silently excluding them.
 
 #figure(
-  grid(
-    columns: 3,
-    gutter: 12pt,
-    figure(image("../graphics/fig_scenario_a.png", width: 100%), caption: [_(a) Two-body orbit_], numbering: none),
-    figure(image("../graphics/fig_scenario_b.png", width: 100%), caption: [_(b) Plummer sphere_], numbering: none),
-    figure(image("../graphics/fig_scenario_c.png", width: 100%), caption: [_(c) Exponential disk_], numbering: none),
+  stack(
+    dir: ttb,
+    spacing: 12pt,
+    grid(
+      columns: (1fr, 1fr),
+      gutter: 12pt,
+      figure(image("../graphics/fig_scenario_a.png", width: 100%), caption: [_(a) Two-body orbit with particle trails_], numbering: none),
+      figure(image("../graphics/fig_scenario_b.png", width: 100%), caption: [_(b) Plummer sphere_], numbering: none),
+    ),
+    align(center,
+      figure(image("../graphics/fig_scenario_c.png", width: 50%), caption: [_(c) Exponential disk_], numbering: none),
+    ),
   ),
-  caption: [Initial particle distributions for the three benchmark scenarios. (a) Scenario A: two-body orbit. (b) Scenario B: Plummer sphere with $N = 10000$. (c) Scenario C: exponential disk with $N = 50000$.],
+  caption: [Initial particle distributions for the three benchmark scenarios. (a) two-body orbit. (b) Plummer sphere with $N = 10000$. (c) exponential disk with $N = 50000$.],
 ) <fig:scenarios>
 
 == Evaluation Protocol <sec:evaluation-protocol>
