@@ -82,18 +82,19 @@ Force evaluation dominates at all particle counts, accounting for 94% of step ti
 
 #figure(
   table(
-    columns: (auto, auto, auto, auto, auto),
-    align: (right, right, right, right, right),
-    [*N*], [*Metal (ms)*], [*WebGPU (ms)*], [*Overhead*], [*Metal CV*],
-    [1,000], [2.05], [7.04], [3.4$times$], [0.45],
-    [5,000], [8.09], [7.87], [0.97$times$], [0.16],
-    [10,000], [16.66], [10.25], [0.62$times$], [0.02],
-    [50,000], [75.76], [67.53], [0.89$times$], [0.02],
+    columns: (auto, auto, auto, auto),
+    align: (right, right, right, right),
+    [*N*], [*Metal (ms)*], [*WebGPU (ms)*], [*Ratio (WebGPU/Metal)*],
+    [1,000], [2.94], [7.04], [2.4$times$],
+    [5,000], [10.09], [7.87], [0.78$times$],
+    [10,000], [21.35], [10.25], [0.48$times$],
+    [50,000], [121.77], [67.53], [0.55$times$],
+    [100,000], [516.78], [182.85], [0.35$times$],
   ),
-  caption: [WebGPU (wgpu-native) vs native Metal (UniSim) Barnes–Hut performance on the same Apple M2. At $N gt.eq 5000$ the WebGPU implementation matches or exceeds the Metal baseline, suggesting that the WebGPU abstraction overhead is negligible relative to differences in tree construction and traversal strategy.],
+  caption: [WebGPU (wgpu-native) vs native Metal (UniSim @unisim, stabilised fork @unisim-fork) Barnes–Hut performance on the same Apple M2. At $N gt.eq 5000$ the WebGPU implementation outperforms the Metal baseline, reflecting the efficiency of the fully GPU-resident LBVH pipeline.],
 ) <tab:metal-comparison>
 
-At $N = 1000$, the WebGPU path is 3.4$times$ slower than native Metal, reflecting the fixed per-dispatch overhead of the WebGPU API at small workloads. At $N gt.eq 5000$, the WebGPU implementation matches or outperforms the Metal baseline, indicating that the GPU compute dominates and the abstraction overhead becomes negligible. The WebGPU solver's advantage at larger $N$ likely reflects differences in tree construction strategy (fully GPU-resident LBVH vs UniSim's approach) rather than a fundamental advantage of WebGPU over Metal.
+At $N = 1000$, WebGPU is 2.4$times$ slower than native Metal, reflecting per-dispatch overhead at small workloads. At $N gt.eq 5000$, the WebGPU implementation is consistently faster, reaching 2.8$times$ faster at $N = 100000$ (182.85 ms vs 516.78 ms). This advantage reflects differences in tree construction and traversal strategy — the fully GPU-resident LBVH with the optimised traversal shader described in the methodology outperforms UniSim's approach at scale — rather than WebGPU being inherently faster than Metal. The key finding for RQ2 is that the WebGPU abstraction layer imposes no measurable overhead once GPU compute dominates at $N gt.eq 5000$.
 
 === Cross-Backend Implementation Comparison
 
@@ -157,4 +158,4 @@ Energy drift is reported as a secondary observation characterising the 32-bit pr
 
 == Summary of Findings
 
-Force evaluation accounts for 94–99% of step time, with the LBVH construction pipeline remaining below 1 ms even at $N = 100000$ (RQ1). The WebGPU abstraction overhead relative to native Metal converges from 3.4$times$ at $N = 1000$ to parity at $N gt.eq 5000$, with substantial variation across implementations: Dawn is fastest at small $N$ while wgpu-native scales best (RQ2). Browser execution adds a fixed ~29 ms overhead that becomes negligible at large $N$, with Chrome matching native throughput at $N = 50000$ (RQ3). The 32-bit precision floor is the binding constraint on numerical fidelity. These findings are interpreted in the following discussion section.
+Force evaluation accounts for 94–99% of step time, with the LBVH construction pipeline remaining below 1 ms even at $N = 100000$ (RQ1). The WebGPU abstraction overhead relative to native Metal is 2.4$times$ at $N = 1000$ but the WebGPU solver outperforms the Metal baseline at $N gt.eq 5000$, with substantial variation across WebGPU implementations (RQ2). Browser execution adds a fixed ~29 ms overhead that becomes negligible at large $N$, with Chrome matching native throughput at $N = 50000$ (RQ3). The 32-bit precision floor is the binding constraint on numerical fidelity. These findings are interpreted in the following discussion section.
