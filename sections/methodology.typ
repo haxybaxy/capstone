@@ -1,3 +1,5 @@
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
+
 #pagebreak()
 = Methodology
 #set heading(numbering: "1.1")
@@ -136,10 +138,7 @@ The solver comprises WGSL compute shaders in two groups: integration and force e
 
 Each timestep is recorded into a single command encoder and submitted as one command buffer. The six sequential passes, illustrated in @fig:timestep-pipeline, are: (1) a half-kick that advances velocities by $Delta t \/ 2$ using the current accelerations; (2) a drift that advances positions by $Delta t$ using the half-stepped velocities; (3) a full LBVH rebuild comprising seven sub-passes (global AABB reduction, Morton code generation, radix sort, Karras topology construction, leaf initialisation, and bottom-up aggregation); (4) BVH force evaluation, in which each particle traverses the tree iteratively using a fixed-depth explicit stack (depth 64, sufficient for all tested $N$); (5) a second half-kick that completes the velocity update; and (6) an optional diagnostics readback at configurable intervals, in which positions and velocities are copied to the CPU via staging buffers for double-precision energy and momentum computation.
 
-#figure(
-  image("../graphics/fig_timestep_pipeline.png", width: 50%),
-  caption: [Per-timestep GPU execution pipeline for the leapfrog integrator. All six passes are recorded into a single command buffer. The LBVH build (pass 3) comprises seven sub-passes with implicit barrier synchronization between each.],
-) <fig:timestep-pipeline>
+#include "fig_pipeline.typ"
 
 === GPU tree traversal
 
