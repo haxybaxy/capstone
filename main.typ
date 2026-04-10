@@ -37,7 +37,7 @@
 #show link: it => underline(text(fill: rgb("#0000EE"), it))
 
 #include "sections/title_page.typ"
-// #include "sections/abstract.typ"
+#include "sections/abstract.typ"
 #include "sections/introduction.typ"
 #include "sections/methodology.typ"
 #include "sections/experiments.typ"
