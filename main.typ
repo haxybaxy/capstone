@@ -5,7 +5,7 @@
 
 #set text(font: "Times New Roman", size: 12pt)
 
-#set heading(numbering: "1.a)")
+#set heading(numbering: "1.1")
 #show heading: it => {
   block(
     it,
