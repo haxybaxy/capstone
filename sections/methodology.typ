@@ -36,7 +36,7 @@ As discussed in the literature review, WebGPU is the only current GPU API that c
 
 == Physical Model and State Representation
 
-Each particle represents a mass element evolving under self-gravity in an isolated (open) domain. We adopt a natural unit system in which the gravitational constant $G = 1$, the unit of mass $M_0$ is defined by the total system mass, and the unit of length $r_0$ is set by the characteristic scale of the initial conditions (e.g., the Plummer scale length $a$ in Scenario B). Time is measured in units of $t_0 = sqrt(r_0^3 \/ (G M_0))$, the free-fall timescale of the system. All quantities reported in subsequent sections (energies, momenta, and timescales) are expressed in these natural units unless stated otherwise. The softened acceleration of particle $i$ due to all other particles is
+In our simulation, each particle represents a mass element evolving under self-gravity in an isolated (open) domain. We adopt a natural unit system in which the gravitational constant $G = 1$, the unit of mass $M_0$ is defined by the total system mass, and the unit of length $r_0$ is set by the characteristic scale of the initial conditions (e.g., the Plummer scale length $a$ in Scenario B). Time is measured in units of $t_0 = sqrt(r_0^3 \/ (G M_0))$, the free-fall timescale of the system. All the quantities reported in subsequent sections (energies, momenta, and timescales) are expressed in terms of these natural units unless stated otherwise. The softened acceleration of particle $i$ due to all other particles is
 #math.equation(
   $
     bold(a)_i = G sum_(j eq.not i) m_j frac(bold(r)_j - bold(r)_i, (||bold(r)_j - bold(r)_i||^2 + epsilon^2)^(3/2))
