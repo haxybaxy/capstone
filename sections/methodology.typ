@@ -8,11 +8,11 @@ This work adopts a computational-methods design in which a gravitational $N$-bod
 
 The physical and numerical foundations of the implementation draw directly from the literature on hierarchical $N$-body simulation and GPU parallelism. The gravitational force model adopts Newtonian gravity with Plummer-type softening to avoid the $1/r^2$ singularity and reduce spurious two-body relaxation in collisionless regimes @galacticdynamics2nded. Accelerations are computed using a Barnes–Hut-style hierarchical approximation that reduces force evaluation from $O(N^2)$ to approximately $O(N log N)$ @barneshut, with the primary code path constructing and traversing a Linear Bounding Volume Hierarchy (LBVH) entirely on the GPU using the parallel method of Karras @maximizeparallel. Time integration employs a second-order symplectic leapfrog scheme (kick–drift–kick), selected for its improved long-term energy behavior relative to forward Euler in gravitational systems @springel_2005. The compute platform, WebGPU, provides general-purpose parallel compute shaders that enable both native and browser deployment through the same low-level API surface.
 
-The evaluation is structured around three operational research questions:
+The evaluation is structured around three research questions:
 
-1. *Scalability*: How does runtime per timestep scale with $N$ for a WebGPU Barnes–Hut implementation compared to a direct $O(N^2)$ baseline at small $N$?
-2. *Numerical quality*: For fixed $N$, how do timestep size $Delta t$ and opening angle $theta$ affect (a) long-term conservation behavior (energy and momentum drift where measurable) and (b) stability under long integrations?
-3. *Platform feasibility*: What particle counts and timestep rates are practical under WebGPU constraints (32-bit GPU arithmetic, buffer and memory limits, scheduling overhead, and device variability)?
+1. *Scalability*: How does runtime per timestep scale with $N$ for a WebGPU Barnes–Hut implementation, and where are the bottlenecks within the GPU pipeline?
+2. *Abstraction overhead*: What performance cost does the WebGPU abstraction layer impose relative to native Metal, and how does this vary across WebGPU implementations (wgpu-native, Dawn, browser)?
+3. *Browser feasibility*: Can the same codebase, compiled to WebAssembly and running in a browser, achieve acceptable throughput and numerical consistency compared to native execution?
 
 The choice of WebGPU as the compute platform is central to all three research questions; the following section provides a detailed justification.
 
