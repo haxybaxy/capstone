@@ -33,7 +33,7 @@ Force evaluation dominates at every particle count — 94% of step time at $N = 
 
 === LBVH Construction Breakdown
 
-@tab:lbvh-breakdown decomposes tree construction into its seven individual passes. All six construction passes remain approximately constant with $N$ (1.3–5.1 ms each), confirming that the LBVH pipeline scales well. The radix sort is the most expensive construction pass at 3.5–5.1 ms, accounting for 34–41% of total construction time. Force evaluation, shown in the final column for reference, is the component that drives the overall scaling behaviour.
+@tab:lbvh-breakdown decomposes tree construction into its six individual passes. All six construction passes remain approximately constant with $N$ (1.3–5.1 ms each), confirming that the LBVH pipeline scales well. The radix sort is the most expensive construction pass at 3.5–5.1 ms, accounting for 34–41% of total construction time. Force evaluation, shown in the final column for reference, is the component that drives the overall scaling behaviour.
 
 #figure(
   table(
