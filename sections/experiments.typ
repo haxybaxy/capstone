@@ -2,7 +2,7 @@
 = Experiments
 #set heading(numbering: "1.1")
 
-This section specifies the hardware environment and the concrete experiment configurations used to evaluate the solver against the three research questions defined in the methodology. All experiments use the headless batch mode of the simulation, eliminating rendering overhead and producing deterministic CSV logs for post-processing.
+This section specifies the hardware environment and experiment configurations used to evaluate the solver against the three research questions. All experiments run in headless batch mode, eliminating rendering overhead and producing deterministic CSV logs for post-processing.
 
 == Experimental Platform
 
@@ -31,11 +31,11 @@ Each run is executed in headless batch mode, with all simulation parameters (sce
 
 == Benchmarking Protocol
 
-The timing methodology follows established practices for GPU benchmarking @maczan2026. Each configuration is warmed up by discarding the first 50 steps, during which pipeline compilation, buffer allocation, and caching stabilise. Timing is then collected over the subsequent 100 steps and reported as mean $plus.minus$ standard deviation, with the 95% confidence interval computed via the $t$-distribution. The coefficient of variation ($"CV" = sigma \/ mu$) is reported to quantify run-to-run stability; configurations with $"CV" > 10%$ are flagged and investigated. For the cross-backend comparison (Group 6), positions are held frozen (forces are computed but not applied) to isolate dispatch and scheduling overhead from physics-dependent variation in tree structure. This frozen-state protocol ensures that all backends execute identical GPU workloads, so that measured differences reflect only the overhead of the WebGPU implementation and host-side scheduling.
+We follow established practices for GPU benchmarking @maczan2026. Each configuration is warmed up by discarding the first 50 steps, during which pipeline compilation, buffer allocation, and caching stabilise. Timing is then collected over the next 100 steps and reported as mean $plus.minus$ standard deviation, with the 95% confidence interval via the $t$-distribution. The coefficient of variation ($"CV" = sigma \/ mu$) quantifies run-to-run stability; configurations with $"CV" > 10%$ are flagged and investigated. For the cross-backend comparison (Group 6), positions are held frozen — forces are computed but not applied — to isolate dispatch and scheduling overhead from physics-dependent variation in tree structure. This frozen-state protocol ensures all backends execute identical GPU workloads, so measured differences reflect only the WebGPU implementation overhead and host-side scheduling.
 
 == Experiment Groups
 
-The experiments are organised into seven groups, each targeting one or more research questions or characterising numerical quality. @tab:experiment-matrix provides a summary.
+The experiments are organised into seven groups, each targeting one or more research questions or characterising numerical quality (@tab:experiment-matrix).
 
 #figure(
   table(
@@ -62,7 +62,7 @@ This group verifies integrator correctness using the two-body orbit configuratio
 
 === Group 2: Plummer Sphere Parameter Sweeps (Scenario B)
 
-The Plummer sphere scenario provides the primary quantitative testbed because it has symmetric initial conditions and known analytic equilibrium properties. Four sub-groups isolate individual parameter effects.
+The Plummer sphere is the primary quantitative testbed because of its symmetric initial conditions and known analytic equilibrium properties. Four sub-groups isolate individual parameter effects.
 
 Sub-group 2a (N-scaling) varies $N$ over ${100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000}$ with all other parameters fixed at defaults ($Delta t = 0.001$, $theta = 0.75$, $epsilon = 0.5$, leapfrog, GPU LBVH). Each run executes 1,000 steps. This sub-group directly addresses RQ1 (scalability) and RQ3 (feasibility at large $N$).
 
@@ -90,13 +90,13 @@ To identify the particle count at which hierarchical force evaluation becomes fa
 
 === Group 5: Native vs Browser Execution
 
-To evaluate WebGPU's portability promise (RQ3), the same GPU LBVH Barnes–Hut configuration used in Group 2a is executed in a browser environment via Emscripten @emscripten. The native C++ codebase is cross-compiled to WebAssembly (WASM) using Emscripten with two key flags: `-sASYNCIFY`, which transforms synchronous C++ code into asynchronous form so that the simulation can yield control to the browser's event loop between timesteps (required because browsers do not allow long-running synchronous code on the main thread), and `-sALLOW_MEMORY_GROWTH=1`, which permits the WebAssembly linear memory to grow dynamically as particle count increases rather than requiring a fixed-size allocation at compile time. The resulting WebAssembly module runs in a headless Chromium instance on the same hardware, using the browser's WebGPU implementation (backed by the same Metal driver). Particle counts sweep $N in {100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000}$ with all other parameters matching Group 2a ($Delta t = 0.001$, $theta = 0.75$, $epsilon = 0.5$, leapfrog, GPU LBVH, 1000 steps).
+To test WebGPU's portability promise (RQ3), we run the same GPU LBVH Barnes–Hut configuration from Group 2a in a browser via Emscripten @emscripten. The native C++ codebase is cross-compiled to WebAssembly (WASM) with two key flags: `-sASYNCIFY`, which transforms synchronous C++ code into asynchronous form so that the simulation can yield control to the browser's event loop between timesteps (required because browsers do not allow long-running synchronous code on the main thread), and `-sALLOW_MEMORY_GROWTH=1`, which permits the WebAssembly linear memory to grow dynamically as particle count increases rather than requiring a fixed-size allocation at compile time. The resulting WebAssembly module runs in a headless Chromium instance on the same hardware, using the browser's WebGPU implementation (backed by the same Metal driver). Particle counts sweep $N in {100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000}$ with all other parameters matching Group 2a ($Delta t = 0.001$, $theta = 0.75$, $epsilon = 0.5$, leapfrog, GPU LBVH, 1000 steps).
 
 Two timing metrics are collected: (1) wall-clock milliseconds per step, computed from the console-log timestamps emitted every 100 steps, which captures all overhead including event-loop scheduling and Emscripten asyncify yields; and (2) GPU-side timing from the sampled per-step tree/force/integrate breakdowns logged to the console. Energy drift at the final step is compared to the native run at each $N$ to verify numerical consistency across platforms. A GPU command-buffer flush was required after each compute dispatch in the browser path to prevent command coalescing from stalling the pipeline; this fix had no effect on native execution.
 
 === Group 6: Cross-Backend Implementation Comparison
 
-To characterise the performance impact of the WebGPU implementation layer itself, the same simulation configuration is executed across four WebGPU implementations on the same Apple M2 hardware, all backed by the Metal graphics API: wgpu-native (the default native backend), Dawn @dawn (Google's WebGPU implementation), Chrome (browser WebGPU via Emscripten), and Safari (browser WebGPU via Emscripten). This design isolates the overhead introduced by each implementation from the GPU compute itself, since all four paths execute identical WGSL shaders on the same Metal driver. Recent work on WebGPU dispatch overhead has shown that implementation choice within the same backend can produce up to 2.2$times$ variation in per-dispatch cost @maczan2026, making this comparison directly relevant to understanding the platform overhead reported in Group 5. Particle counts sweep $N in {1000, 10000, 100000}$ using the frozen-state benchmarking protocol described above (50 warmup steps, 100 measured steps, positions held constant). For each implementation and $N$, the mean milliseconds per step, standard deviation, 95% confidence interval, and coefficient of variation are reported.
+To measure the performance impact of the WebGPU implementation layer itself, we run the same simulation across four WebGPU implementations on the same Apple M2, all backed by the Metal graphics API: wgpu-native (the default native backend), Dawn @dawn (Google's WebGPU implementation), Chrome (browser WebGPU via Emscripten), and Safari (browser WebGPU via Emscripten). This design isolates the overhead introduced by each implementation from the GPU compute itself, since all four paths execute identical WGSL shaders on the same Metal driver. Recent work on WebGPU dispatch overhead has shown that implementation choice within the same backend can produce up to 2.2$times$ variation in per-dispatch cost @maczan2026, making this comparison directly relevant to understanding the platform overhead reported in Group 5. Particle counts sweep $N in {1000, 10000, 100000}$ using the frozen-state benchmarking protocol described above (50 warmup steps, 100 measured steps, positions held constant). For each implementation and $N$, the mean milliseconds per step, standard deviation, 95% confidence interval, and coefficient of variation are reported.
 
 === Group 7: LBVH Construction Pass Breakdown
 

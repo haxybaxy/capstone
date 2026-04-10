@@ -2,7 +2,7 @@
 = Results and Analysis
 #set heading(numbering: "1.1")
 
-This section presents results organised by the three research questions: RQ1 (scalability and pipeline bottlenecks), RQ2 (WebGPU abstraction overhead relative to native Metal), and RQ3 (browser feasibility). All timing values are mean milliseconds per step over 100 measured steps after 50 warmup steps, reported with standard deviation and coefficient of variation. Energy drift is reported as $Delta E = |E(t) - E(0)| \/ |E(0)|$.
+Results are organised by research question: RQ1 (scalability and pipeline bottlenecks), RQ2 (WebGPU abstraction overhead relative to native Metal), and RQ3 (browser feasibility). All timing values are mean ms/step over 100 measured steps after 50 warmup steps, reported with standard deviation and coefficient of variation. Energy drift is $Delta E = |E(t) - E(0)| \/ |E(0)|$.
 
 == RQ1: Scalability and Pipeline Bottlenecks
 
@@ -30,7 +30,7 @@ This section presents results organised by the three research questions: RQ1 (sc
 //   caption: [Mean runtime per timestep as a function of $N$ for the Plummer sphere scenario (GPU LBVH, leapfrog, $theta = 0.75$, wgpu-native/Metal).],
 // ) <fig:n-scaling-plummer>
 
-Force evaluation dominates at all particle counts, accounting for 94% of step time at $N = 1000$ and 99% at $N = 100000$. Tree construction (the seven-pass LBVH pipeline) remains below 1 ms even at $N = 100000$, indicating that the parallel construction method is efficient and that further optimisation efforts should target the BVH traversal shader rather than the tree-build pipeline.
+Force evaluation dominates at every particle count — 94% of step time at $N = 1000$, 99% at $N = 100000$. Tree construction stays below 1 ms even at $N = 100000$. The parallel construction method scales well; any further optimisation effort should go into the BVH traversal shader.
 
 === LBVH Construction Breakdown
 
@@ -52,7 +52,7 @@ Force evaluation dominates at all particle counts, accounting for 94% of step ti
 
 === Direct vs Tree: Speed–Accuracy Trade-off
 
-@tab:crossover compares runtime and energy drift between direct $O(N^2)$ summation and the tree-based $O(N log N)$ path. Direct summation is faster at all tested particle counts, reflecting the high degree of GPU parallelism available for the regular, branch-free direct computation compared to the irregular memory access patterns of tree traversal. However, the tree path produces substantially lower energy drift: at $N = 100000$, direct summation yields $Delta E = 2.01$ while the tree path achieves $Delta E = 0.079$. The relevant crossover is therefore not one of runtime but of _accuracy_: the tree path sacrifices throughput for force accuracy that keeps the simulation physically meaningful over long integrations.
+@tab:crossover compares runtime and energy drift between direct $O(N^2)$ summation and the tree-based $O(N log N)$ path. Direct summation is faster at all tested particle counts — its regular, branch-free access pattern maps well onto the GPU. But the tree path produces far lower energy drift: at $N = 100000$, direct summation gives $Delta E = 2.01$ while the tree path achieves $Delta E = 0.079$. The real crossover is not runtime but _accuracy_: the tree path trades throughput for the force accuracy needed to keep the simulation physically meaningful.
 
 #figure(
   table(
@@ -113,7 +113,7 @@ At $N = 1000$, WebGPU is 2.4$times$ slower than native Metal, reflecting per-dis
   caption: [Per-step runtime across four WebGPU implementations (Plummer sphere, $theta = 0.75$, frozen-state protocol). All four use the Metal backend on Apple M2. Dawn is fastest at small $N$; wgpu-native scales best to large $N$.],
 ) <tab:cross-backend>
 
-The results reveal substantial variation across implementations. Dawn achieves the lowest per-dispatch overhead (1.47 ms at $N = 1000$) but scales to 274.57 ms at $N = 100000$, while wgpu-native starts higher (7.04 ms) but scales better (182.85 ms). The two browser implementations show a fixed floor of approximately 34–36 ms at small $N$, attributable to the Emscripten asyncify event-loop yield, above which they diverge: Chrome scales to 219.96 ms while Safari reaches 311.27 ms. These findings are consistent with Maczan's observation that implementation choice within the same backend produces significant performance variation @maczan2026.
+The variation across implementations is large. Dawn has the lowest per-dispatch overhead (1.47 ms at $N = 1000$) but scales to 274.57 ms at $N = 100000$; wgpu-native starts higher (7.04 ms) but scales better (182.85 ms). Both browser implementations hit a floor of roughly 34–36 ms at small $N$ from the Emscripten asyncify yield, then diverge: Chrome reaches 219.96 ms at $N = 100000$, Safari 311.27 ms. These numbers are consistent with Maczan's finding that implementation choice within the same backend produces large performance variation @maczan2026.
 
 == RQ3: Browser Feasibility
 
@@ -141,7 +141,7 @@ The results reveal substantial variation across implementations. Dawn achieves t
 
 == Numerical Quality
 
-Energy drift is reported as a secondary observation characterising the 32-bit precision floor of WebGPU rather than a primary research question. The opening angle sweep at $N = 5000$ (@tab:theta-sweep) shows identical drift ($Delta E \/ |E(0)| approx 1.84$) across all tested $theta$ values, confirming that 32-bit floating-point precision, not the tree approximation, is the dominant error source. Softening in the range 0.1–2.0 has no measurable effect on runtime and produces only modest variation in drift (1.82–2.00). Momentum is conserved to within 0.1% over 5,000 steps.
+Energy drift is a secondary observation, characterising the 32-bit precision floor rather than a primary research question. The opening-angle sweep at $N = 5000$ (@tab:theta-sweep) shows identical drift ($Delta E \/ |E(0)| approx 1.84$) at every tested $theta$, confirming that 32-bit precision — not the tree approximation — is the dominant error source. Softening in the range 0.1–2.0 has no measurable effect on runtime and only modest impact on drift (1.82–2.00). Momentum is conserved to within 0.1% over 5,000 steps.
 
 #figure(
   table(
@@ -158,4 +158,4 @@ Energy drift is reported as a secondary observation characterising the 32-bit pr
 
 == Summary of Findings
 
-Force evaluation accounts for 94–99% of step time, with the LBVH construction pipeline remaining below 1 ms even at $N = 100000$ (RQ1). The WebGPU abstraction overhead relative to native Metal is 2.4$times$ at $N = 1000$ but the WebGPU solver outperforms the Metal baseline at $N gt.eq 5000$, with substantial variation across WebGPU implementations (RQ2). Browser execution adds a fixed ~29 ms overhead that becomes negligible at large $N$, with Chrome matching native throughput at $N = 50000$ (RQ3). The 32-bit precision floor is the binding constraint on numerical fidelity. These findings are interpreted in the following discussion section.
+Force evaluation accounts for 94–99% of step time, with LBVH construction staying below 1 ms even at $N = 100000$ (RQ1). The WebGPU abstraction costs 2.4$times$ at $N = 1000$ but the solver outperforms the Metal baseline at $N gt.eq 5000$, with large variation across WebGPU implementations (RQ2). Browser execution adds a fixed ~29 ms overhead that becomes negligible at large $N$ — Chrome matches native throughput at $N = 50000$ (RQ3). The 32-bit precision floor is the binding constraint on numerical fidelity.
