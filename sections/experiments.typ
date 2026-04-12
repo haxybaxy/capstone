@@ -24,10 +24,10 @@ All experiments were executed on a single workstation whose configuration is sum
     [Compiler], [Apple Clang 17.0.0, C++20, Release (`-O3 -DNDEBUG`)],
     [Timing], [CPU wall-clock via `std::chrono::high_resolution_clock` (sub-µs resolution), bracketing backend-specific GPU fences: `wgpuQueueOnSubmittedWorkDone` + poll (wgpu-native), buffer-map fence (Dawn / Emscripten). `--sync-timing` for total ms/step; `--benchmark-passes` for per-component breakdown.],
   ),
-  caption: [Hardware and software configuration. All experiments run on the same Apple M2 system. The four WebGPU implementations and the native Metal baseline all use the same Metal graphics driver, isolating the overhead of each abstraction layer.],
+  caption: [Hardware and software configuration.]
 ) <tab:platform>
 
-Each run is executed in headless batch mode, with all simulation parameters (scenario type, $N$, $Delta t$, $theta$, softening $epsilon$, integrator, tree type, force method, step count, and random seed) specified at invocation. The CSV output records twelve columns per step: step number, simulation time, kinetic energy, potential energy (zero when $N > 5000$), total energy, energy drift, three momentum components ($p_x$, $p_y$, $p_z$), and three timing components (tree build, force evaluation, and integration in milliseconds).
+Each run is executed in headless batch mode, with all simulation parameters specified at invocation. The CSV output records twelve columns per step: step number, simulation time, kinetic energy, potential energy (zero when $N > 5000$), total energy, energy drift, three momentum components ($p_x$, $p_y$, $p_z$), and three timing components (tree build, force evaluation, and integration in milliseconds).
 
 == Benchmarking Protocol
 
@@ -35,7 +35,7 @@ We follow established practices for GPU benchmarking @maczan2026. Each configura
 
 == Experiment Groups
 
-The experiments are organised into seven groups, each targeting one or more research questions or characterising numerical quality (@tab:experiment-matrix). Exact command-line invocations for reproducing each group are provided in the Appendix.
+The experiments are split into seven groups, targeting one or more research questions or numerical quality (@tab:experiment-matrix). Exact command-line invocations for reproducing each group are provided in the Appendix.
 
 #figure(
   table(
@@ -53,7 +53,7 @@ The experiments are organised into seven groups, each targeting one or more rese
     [6: Cross-backend comparison], [B (Plummer)], [WebGPU impl $times N$], [12], [RQ2, RQ3],
     [7: LBVH pass breakdown], [B (Plummer)], [per-pass timing $times N$], [5], [RQ1],
   ),
-  caption: [Summary of experiment groups, swept variables, and targets. Qual. denotes numerical quality characterisation, reported as a secondary observation rather than a primary research question.],
+  caption: [Summary of experiment groups, swept variables, and targets. Qual. denotes numerical quality characterisation, reported as a secondary observation.],
 ) <tab:experiment-matrix>
 
 === Group 1: Two-Body Orbit Validation (Scenario A)
@@ -81,7 +81,7 @@ The disk scenario targets large-$N$ scalability and qualitative morphological as
     figure(image("../graphics/fig_disk_t5.png", width: 100%), caption: [_(c)_ $t = 5$], numbering: none),
     figure(image("../graphics/fig_disk_t10.png", width: 100%), caption: [_(d)_ $t = 10$], numbering: none),
   ),
-  caption: [Morphological evolution of the rotating exponential disk (Scenario C, $N = 50000$). Panels show the face-on particle distribution at four simulation times, illustrating the development of spiral structure.],
+  caption: [Morphological evolution of the rotating exponential disk.],
 ) <fig:disk-evolution>
 
 === Group 4: Direct vs Tree Crossover
@@ -100,6 +100,6 @@ To measure the performance impact of the WebGPU implementation layer itself, we 
 
 === Group 7: LBVH Construction Pass Breakdown
 
-To identify which phases of the LBVH construction pipeline dominate total tree-build time, per-pass timing is collected at $N in {1000, 5000, 10000, 50000, 100000}$ using CPU-side timing markers placed between each compute dispatch. The six LBVH sub-passes (global AABB reduction, Morton code generation, radix sort, Karras topology construction, leaf initialisation, bottom-up aggregation) and the force evaluation pass are timed individually. This decomposition reveals whether the sort phase, the topology construction, or the bottom-up aggregation is the primary bottleneck, and how the balance shifts with $N$.
+To identify which phases of the LBVH construction pipeline dominate total tree-build time, per-pass timing is collected at $N in {1000, 5000, 10000, 50000, 100000}$ using CPU-side timing markers placed between each compute dispatch. The six LBVH sub-passes and the force evaluation pass are timed individually. This decomposition reveals whether the sort phase, the topology construction, or the bottom-up aggregation is the primary bottleneck, and how the balance shifts with $N$.
 
 The following section presents the results of these experiments, organised by research question.
